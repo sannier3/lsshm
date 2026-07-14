@@ -16,7 +16,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck
 
       - name: Build the single-file script
-        run: ./scripts/build.sh
+        run: bash scripts/build.sh
 
       # The modules in src/ share state and are only complete once assembled,
       # so the assembled script is the authoritative lint target.
