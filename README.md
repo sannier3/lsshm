@@ -1,74 +1,76 @@
+**__Readme Languages__** [![English](https://img.shields.io/badge/lang-English-blue.svg)](README.md) [![Français](https://img.shields.io/badge/lang-Français-lightgrey.svg)](README.fr.md) ![License](https://img.shields.io/badge/License-MIT-success?style=flat-square)
+
 # LSSHM - Local SSH Manager
 
-LSSHM est un outil de gestion OpenSSH **local** : serveur SSH, accès entrants, clés de connexion sortantes et machines distantes. Il fonctionne immédiatement sur la machine où il est installé, **sans aucun hôte distant configuré**.
+LSSHM is a **local** OpenSSH management tool: SSH server, incoming access, outgoing keys, and remote hosts. It works immediately on the machine where it runs, **with no remote host configured**.
 
-Interface CLI par défaut (sans dépendance) et interface `dialog` facultative.
+Default dependency-free CLI and optional `dialog` interface.
 
 > [!WARNING]
-> LSSHM est en développement actif (v0.1.0). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+> LSSHM is under active development (v0.1.0). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
 
-## Positionnement
+## Scope
 
-LSSHM gère quatre domaines distincts, visibles dans tous les menus :
+LSSHM manages four separate areas, visible in every menu:
 
-| Partie | Fichiers concernés |
-| ------ | ------------------ |
-| Serveur SSH local | `/etc/ssh/sshd_config` et inclusions |
-| Accès entrants | `~/.ssh/authorized_keys` |
-| Clés sortantes | `~/.ssh/id_*`, `ssh-agent` |
-| Machines distantes | `~/.ssh/config`, `~/.ssh/known_hosts` |
+| Area | Files involved |
+| ---- | -------------- |
+| Local SSH server | `/etc/ssh/sshd_config` and includes |
+| Incoming access | `~/.ssh/authorized_keys` |
+| Outgoing keys | `~/.ssh/id_*`, `ssh-agent` |
+| Remote hosts | `~/.ssh/config`, `~/.ssh/known_hosts` |
 
 ## Installation
 
-Installe LSSHM dans `~/.local` et crée la commande `lsshm` :
+Installs LSSHM into `~/.local` and creates the `lsshm` command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
 ```
 
-Puis lancez :
+Then run:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"   # une fois, dans le terminal actuel
+export PATH="$HOME/.local/bin:$PATH"   # once, in the current terminal
 lsshm
 ```
 
-Les prochaines connexions SSH chargeront le PATH automatiquement (`~/.profile`).
+Future SSH sessions will load the PATH automatically (`~/.profile`).
 
-> Pas de `sudo` pour l'installation. Les privilèges root ne sont demandés que pour gérer le serveur SSH ou les fichiers système.
+> No `sudo` required for installation. Root privileges are only requested to manage the SSH server or system files.
 
-## Exécution sans installation
+## Run without installing
 
-Pour **essayer** LSSHM ou lancer **une commande ponctuelle**, sans rien installer :
+To **try** LSSHM or run a **one-off command** without installing anything:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash              # menu
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status   # état
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- ui       # interface dialog
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status   # status
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- ui       # dialog UI
 ```
 
-C'est le **même fichier** qu'à l'installation ; le script est juste exécuté directement (retéléchargé à chaque `curl`).
+It is the **same file** as installation; the script is executed directly (re-downloaded on every `curl`).
 
-## Utilisation
+## Usage
 
-### Menu interactif
+### Interactive menu
 
 ```bash
 lsshm
 ```
 
-Affiche l'état local (serveur, port, root, clés, hôtes) puis le menu principal.
+Shows local status (server, port, root, keys, hosts) then the main menu.
 
-### Interface dialog
+### Dialog interface
 
 ```bash
 lsshm ui
 lsshm --ui          # alias
 ```
 
-Si `dialog` est absent, LSSHM propose de l'installer ou de basculer sur la CLI.
+If `dialog` is missing, LSSHM offers to install it or fall back to the CLI.
 
-### Commandes non interactives
+### Non-interactive commands
 
 ```bash
 lsshm status
@@ -79,14 +81,14 @@ lsshm update rollback
 lsshm uninstall
 ```
 
-#### Serveur SSH local
+#### Local SSH server
 
 ```bash
 lsshm server status|install|start|stop|restart|reload|enable|disable
 lsshm server config|test|logs
 ```
 
-#### Accès entrants (clés autorisées **sur cette machine**)
+#### Incoming access (keys allowed **on this machine**)
 
 ```bash
 lsshm access list [--user root]
@@ -96,7 +98,7 @@ lsshm access disable [--user jb]
 lsshm access repair [--user jb]
 ```
 
-#### Clés locales (pour se connecter **ailleurs**)
+#### Local keys (to connect **elsewhere**)
 
 ```bash
 lsshm key list|generate
@@ -106,46 +108,46 @@ lsshm key delete ~/.ssh/id_ed25519
 lsshm key agent list|add PATH|remove PATH
 ```
 
-#### Machines distantes (facultatif)
+#### Remote hosts (optional)
 
 ```bash
 lsshm host list|add
-lsshm host edit|delete|test|connect|copy-key|revoke-key NOM
+lsshm host edit|delete|test|connect|copy-key|revoke-key NAME
 ```
 
-Options globales : `--user NOM`, `-y`, `--no-color`, `-h`.
+Global options: `--user NAME`, `-y`, `--no-color`, `-h`.
 
-## Fonctionnalités v0.1.0
+## Features (v0.1.0)
 
-- Détection Debian / dérivés, systemd, LXC
-- Installation et gestion du service OpenSSH Server
+- Debian / derivatives, systemd, and LXC detection
+- OpenSSH Server installation and service management
 - Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf`
-- Lecture effective (`sshd -T`) et validation (`sshd -t`)
-- Gestion lisible de `PermitRootLogin`, mots de passe, clés publiques, `AllowUsers` / `AllowGroups`
-- Restauration automatique pour changements dangereux (port, root, mots de passe…)
-- Gestion des `authorized_keys` (liste, ajout, suppression, désactivation, réparation, doublons)
-- Génération ED25519/RSA, `ssh-agent`, `~/.ssh/config`, `ssh-copy-id`
-- Audit de sécurité, journaux, sauvegarde/restauration
-- Mise à jour sécurisée (`bash -n`, SHA-256, remplacement atomique, rollback)
+- Effective config reading (`sshd -T`) and validation (`sshd -t`)
+- Human-readable `PermitRootLogin`, passwords, public keys, `AllowUsers` / `AllowGroups`
+- Automatic rollback for dangerous changes (port, root, passwords…)
+- `authorized_keys` management (list, add, remove, disable, repair, duplicates)
+- ED25519/RSA generation, `ssh-agent`, `~/.ssh/config`, `ssh-copy-id`
+- Security audit, logs, backup/restore
+- Safe self-update (`bash -n`, SHA-256, atomic replace, rollback)
 
-## Développement
+## Development
 
-Depuis une copie locale du dépôt :
+From a local clone:
 
 ```bash
 bash scripts/build.sh
-bash lsshm.sh install    # ou : bash install.sh
+bash lsshm.sh install    # or: bash install.sh
 bash tests/run.sh
 ```
 
-Structure : modules dans `src/`, fichier unique `lsshm.sh` généré par `scripts/build.sh`.
+Layout: modules in `src/`, single `lsshm.sh` built by `scripts/build.sh`.
 
-Voir `CONTRIBUTING.md` et `CHANGELOG.md`.
+See `CONTRIBUTING.md` and `CHANGELOG.md`.
 
-## Sécurité
+## Security
 
-LSSHM ne transmet jamais de clé privée. Signalez les vulnérabilités via GitHub (voir `SECURITY.md`), pas en issue publique.
+LSSHM never transmits private keys. Report vulnerabilities through GitHub (see `SECURITY.md`), not public issues.
 
-## Licence
+## License
 
-MIT - voir `LICENSE`.
+MIT — see `LICENSE`.
