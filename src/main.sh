@@ -76,18 +76,51 @@ EOF
 # ---------------------------------------------------------------------------
 # Installation / uninstallation
 # ---------------------------------------------------------------------------
-lsshm_check_path() {
+lsshm_path_in_file() {
+    local file="$1"
+    [ -f "$file" ] && grep -q '.local/bin' "$file" 2>/dev/null
+}
+
+lsshm_path_export_line() {
+    printf '# Added by LSSHM\nexport PATH="$HOME/.local/bin:$PATH"\n'
+}
+
+lsshm_path_is_set() {
     case ":$PATH:" in
         *":$LSSHM_BIN_DIR:"*) return 0 ;;
     esac
+    return 1
+}
+
+lsshm_path_activate_hint() {
+    lsshm_info "Pour utiliser lsshm tout de suite (sans redémarrage ni reconnexion) :"
+    printf '\n  export PATH="%s:$PATH"\n' "$LSSHM_BIN_DIR"
+    printf '  lsshm\n\n'
+    lsshm_info "Ou en une commande :"
+    printf '  %s\n\n' "$LSSHM_BIN_LINK"
+    lsshm_note "Les nouvelles sessions SSH chargeront ~/.profile automatiquement."
+}
+
+lsshm_check_path() {
+    lsshm_path_is_set && return 0
+
     lsshm_warn "$LSSHM_BIN_DIR n'est pas dans votre PATH."
-    if lsshm_confirm "Ajouter la ligne d'export dans ~/.profile ?" yes; then
+    if lsshm_confirm "Ajouter l'export PATH dans ~/.profile ?" yes; then
         local profile="$LSSHM_HOME/.profile"
-        printf '\n# Added by LSSHM\nexport PATH="$HOME/.local/bin:$PATH"\n' >>"$profile"
-        lsshm_ok "Ajouté à $profile. Rouvrez votre session ou exécutez : source $profile"
+        if ! lsshm_path_in_file "$profile"; then
+            lsshm_path_export_line >>"$profile"
+        fi
+        # Shell interactif root (Debian, Proxmox) : ~/.bashrc est souvent lu à chaque session.
+        local bashrc="$LSSHM_HOME/.bashrc"
+        if [ -f "$bashrc" ] && ! lsshm_path_in_file "$bashrc"; then
+            lsshm_path_export_line >>"$bashrc"
+            lsshm_ok "Ajouté aussi à $bashrc (shell interactif)."
+        fi
+        lsshm_ok "PATH configuré dans $profile pour les prochaines connexions."
     else
         lsshm_info "Ajoutez manuellement : export PATH=\"\$HOME/.local/bin:\$PATH\""
     fi
+    lsshm_path_activate_hint
 }
 
 lsshm_install() {
@@ -114,7 +147,13 @@ lsshm_install() {
 
     lsshm_config_write_default
     lsshm_check_path
-    lsshm_ok "Installation terminée. Lancez : lsshm"
+    lsshm_ok "Installation terminée."
+    if ! lsshm_path_is_set; then
+        lsshm_note "La commande lsshm n'est pas encore active dans CE terminal."
+        lsshm_path_activate_hint
+    else
+        lsshm_ok "Lancez : lsshm"
+    fi
 }
 
 lsshm_uninstall() {
