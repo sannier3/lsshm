@@ -29,7 +29,13 @@ lsshm_ui_menu() {
 lsshm_ui_show() {
     local title="$1"; shift
     local tmp; tmp="$(lsshm_mktemp)"
-    "$@" >"$tmp" 2>&1 || true
+    (
+        export LSSHM_NO_COLOR=1
+        export LSSHM_C_RESET="" LSSHM_C_BOLD="" LSSHM_C_DIM=""
+        export LSSHM_C_RED="" LSSHM_C_GREEN="" LSSHM_C_YELLOW=""
+        "$@"
+    ) >"$tmp" 2>&1 || true
+    lsshm_strip_ansi_file "$tmp"
     lsshm_tty_restore
     if [ ! -s "$tmp" ]; then
         dialog --backtitle "$LSSHM_LONG_NAME v$LSSHM_VERSION" \
@@ -100,9 +106,11 @@ lsshm_dialog_main() {
     fi
     LSSHM_UI_MODE=1
     export LSSHM_UI_MODE
-    trap 'LSSHM_UI_MODE=0; lsshm_tty_restore' EXIT INT TERM
+    lsshm_init_colors
+    trap 'LSSHM_UI_MODE=0; lsshm_init_colors; lsshm_tty_restore' EXIT INT TERM
     lsshm_dialog_menu_loop
     LSSHM_UI_MODE=0
+    lsshm_init_colors
     lsshm_tty_restore
 }
 

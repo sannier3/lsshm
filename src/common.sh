@@ -44,7 +44,8 @@ lsshm_init_paths() {
 # Colors (disabled when not writing to a terminal or NO_COLOR is set)
 # -----------------------------------------------------------------------------
 lsshm_init_colors() {
-    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${LSSHM_NO_COLOR:-0}" != "1" ]; then
+    if [ -t 1 ] && [ -z "${NO_COLOR:-}" ] && [ "${LSSHM_NO_COLOR:-0}" != "1" ] \
+        && [ "${LSSHM_UI_MODE:-0}" != "1" ]; then
         LSSHM_C_RESET="$(printf '\033[0m')"
         LSSHM_C_BOLD="$(printf '\033[1m')"
         LSSHM_C_DIM="$(printf '\033[2m')"
@@ -55,6 +56,17 @@ lsshm_init_colors() {
         LSSHM_C_RESET=""; LSSHM_C_BOLD=""; LSSHM_C_DIM=""
         LSSHM_C_RED=""; LSSHM_C_GREEN=""; LSSHM_C_YELLOW=""
     fi
+}
+
+# Remove ANSI escape sequences (dialog and programbox do not render them).
+lsshm_strip_ansi() {
+    sed $'s/\033\\[[0-9;]*[a-zA-Z]//g'
+}
+
+lsshm_strip_ansi_file() {
+    local f="$1" tmp
+    tmp="$(lsshm_mktemp)"
+    lsshm_strip_ansi <"$f" >"$tmp" && mv "$tmp" "$f"
 }
 
 # -----------------------------------------------------------------------------
