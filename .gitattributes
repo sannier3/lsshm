@@ -1,0 +1,12 @@
+# Force LF line endings for all text and shell files so the tool works on
+# Linux regardless of the platform used to edit it.
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+VERSION text eol=lf
+SHA256SUMS text eol=lf
+LICENSE text eol=lf

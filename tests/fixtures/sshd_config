@@ -1,0 +1,6 @@
+# Test fixture: main sshd_config
+Port 2222
+PermitRootLogin prohibit-password
+PasswordAuthentication no
+Include /etc/ssh/sshd_config.d/*.conf
+PubkeyAuthentication yes

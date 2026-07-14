@@ -1,0 +1,52 @@
+# Changelog
+
+All notable changes to LSSHM are documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.1.0] - 2026-07-14
+
+### Added
+
+- Local user installation under the XDG base directories
+  (`~/.local/bin`, `~/.local/share`, `~/.config`, `~/.local/state`, `~/.cache`).
+- Single-file distribution (`lsshm.sh`) that acts as program, installer,
+  updater, and uninstaller.
+- Modular source tree under `src/` assembled by `scripts/build.sh`.
+- Dependency-free CLI menu (`lsshm`) split into four clearly separated areas:
+  local SSH server, incoming access, local outgoing keys, and remote hosts.
+- Optional `dialog` terminal interface (`lsshm ui` / `lsshm --ui`) with an
+  offer to install `dialog` when missing.
+- Platform detection: distribution, package manager, service manager,
+  systemd presence, virtualization type, and `sshd` paths.
+- Privilege handling that keeps unprivileged operations without `sudo`
+  and detects the calling user through `SUDO_USER`.
+- Local OpenSSH server management: detection, installation, start, stop,
+  restart, reload, enable, disable, status, config test, and logs.
+- Effective configuration reading with `sshd -T` and validation with `sshd -t`.
+- Managed drop-in configuration file `00-lsshm.conf` with `Include` and
+  early-definition detection.
+- Human-readable `PermitRootLogin`, `PasswordAuthentication`,
+  `PubkeyAuthentication`, `AllowUsers`, and `AllowGroups` management.
+- Automatic rollback for dangerous changes using `systemd-run` with a
+  `nohup` fallback.
+- Incoming access management (`authorized_keys`): list, add, import, remove,
+  disable, comment, permission repair, and duplicate detection.
+- Local key management: detection, ED25519/RSA generation, inspection,
+  fingerprints, export, passphrase change, and safe deletion.
+- `ssh-agent` management: list, add, and remove keys.
+- Remote host management through `~/.ssh/config`: list, add, edit, delete,
+  test, connect, copy-key, and effective config with `ssh -G`.
+- `known_hosts` management: list, show, and remove fingerprints.
+- Logs and diagnostics (`lsshm logs`, `lsshm doctor`).
+- Local security audit (`lsshm audit`).
+- Backup and restore of managed SSH files.
+- Safe self-update from the repository (`lsshm update`, `lsshm update rollback`)
+  with temporary download, `bash -n` check, SHA-256 verification, atomic
+  replacement, and previous-version retention.
+
+[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sannier3/lsshm/releases/tag/v0.1.0

@@ -1,0 +1,9 @@
+# ShellCheck configuration for LSSHM.
+
+# LSSHM ships as modules in src/ that are concatenated into lsshm.sh. Allow
+# following sourced files when analysing.
+external-sources=true
+
+# French user-facing strings deliberately use the typographic apostrophe (U+2019),
+# e.g. "Nom de l’hôte". ShellCheck flags these as possible copy-paste mistakes.
+disable=SC1112

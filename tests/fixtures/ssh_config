@@ -1,0 +1,15 @@
+# Test fixture: ~/.ssh/config
+Host proxmox1
+    HostName 192.168.100.240
+    User root
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
+Host web-*
+    User deploy
+
+Host backup
+    HostName 10.0.0.9
+    User backup
+    Port 2022

@@ -1,0 +1,151 @@
+# =============================================================================
+# LSSHM - Local SSH Manager
+# =============================================================================
+# Note : lsshm.sh et SHA256SUMS sont générés par scripts/build.sh mais restent
+# versionnés (distribution single-file via curl depuis GitHub).
+
+# -----------------------------------------------------------------------------
+# Artefacts de build / scripts
+# -----------------------------------------------------------------------------
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.patch.bak
+sed*
+
+# Journaux locaux
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# -----------------------------------------------------------------------------
+# Clés SSH, secrets et données sensibles
+# (ne jamais committer de matériel cryptographique réel)
+# -----------------------------------------------------------------------------
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+id_ecdsa
+id_dsa
+id_ed25519_sk
+id_ecdsa_sk
+*.pub.local
+authorized_keys
+authorized_keys.*
+known_hosts
+known_hosts.*
+ssh_config.local
+sshd_config.local
+*.gpg
+*.asc
+secrets/
+credentials/
+.env
+.env.*
+!.env.example
+
+# Sauvegardes LSSHM copiées localement dans le dépôt
+*-sshd-config.tar.gz
+*-authkeys-*/
+backups/
+
+# -----------------------------------------------------------------------------
+# Tests
+# -----------------------------------------------------------------------------
+tests/tmp/
+tests/**/tmp/
+tests/**/actual/
+tests/**/output/
+tests/**/.ssh/
+tests/**/*.pem
+tests/**/id_*
+!tests/fixtures/**
+
+# -----------------------------------------------------------------------------
+# État / cache LSSHM (si exécution depuis le dépôt)
+# -----------------------------------------------------------------------------
+.lsshm/
+.cache/
+state/
+
+# -----------------------------------------------------------------------------
+# Éditeurs et IDE
+# -----------------------------------------------------------------------------
+.idea/
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# Cursor
+.cursor/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+Session.vim
+tags
+!tags.lock
+
+# Emacs
+\#*\#
+.\#*
+*.elc
+
+# -----------------------------------------------------------------------------
+# Système d'exploitation
+# -----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# -----------------------------------------------------------------------------
+# Divers
+# -----------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+node_modules/
+coverage/
+*.cover
+.hypothesis/
+.pytest_cache/
+__pycache__/
+*.py[cod]
