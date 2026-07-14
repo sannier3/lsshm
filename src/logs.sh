@@ -38,20 +38,31 @@ lsshm_logs_service() {
 }
 
 lsshm_logs_menu() {
-    lsshm_header
-    printf 'Connexions et journaux\n\n'
-    printf '  1. Sessions actives\n'
-    printf '  2. Connexions récentes\n'
-    printf '  3. Tentatives échouées\n'
-    printf '  4. Journaux du service SSH\n'
-    printf '  5. Retour\n\n'
-    local choice; choice="$(lsshm_prompt 'Choix' '5')"
-    case "$choice" in
-        1) lsshm_logs_sessions ;;
-        2) lsshm_logs_recent_logins ;;
-        3) lsshm_logs_failed ;;
-        4) lsshm_logs_service ;;
-        *) return 0 ;;
-    esac
-    lsshm_pause
+    while true; do
+        local choice="" pick_ret=0
+        if lsshm_uses_dialog_ui; then
+            choice="$(lsshm_dialog_logs_menu)" || pick_ret=$?
+            [ "$pick_ret" -ne 0 ] && break
+        else
+            clear 2>/dev/null || true
+            lsshm_header
+            printf 'Connexions et journaux\n\n'
+            cat <<EOF
+  1. Sessions actives
+  2. Connexions récentes
+  3. Tentatives échouées
+  4. Journaux du service SSH
+  5. Retour
+EOF
+            choice="$(lsshm_prompt 'Choix' '5')"
+        fi
+        case "$choice" in
+            1) lsshm_ui_run "Sessions actives" lsshm_logs_sessions ;;
+            2) lsshm_ui_run "Connexions récentes" lsshm_logs_recent_logins ;;
+            3) lsshm_ui_run "Tentatives échouées" lsshm_logs_failed ;;
+            4) lsshm_ui_run "Journaux SSH" lsshm_logs_service ;;
+            5|q|Q) break ;;
+            *) lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+        esac
+    done
 }

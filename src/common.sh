@@ -115,6 +115,14 @@ lsshm_require_interactive() {
     exit 1
 }
 
+lsshm_tty_restore() {
+    stty sane 2>/dev/null || true
+}
+
+lsshm_uses_dialog_ui() {
+    [ "${LSSHM_UI_MODE:-0}" = "1" ] && lsshm_have dialog
+}
+
 # Read one line from stdin or /dev/tty. Sets the named variable on success.
 lsshm_read_line() {
     local __var="$1" __prompt="$2" __line=""
@@ -135,6 +143,12 @@ lsshm_prompt() {
     if ! lsshm_is_interactive; then
         [ -n "$default" ] && { printf '%s' "$default"; return 0; }
         return 1
+    fi
+    if lsshm_uses_dialog_ui; then
+        lsshm_tty_restore
+        answer="$(dialog --inputbox "$prompt" 10 70 "$default" 3>&1 1>&2 2>&3)" || answer="$default"
+        printf '%s' "${answer:-$default}"
+        return 0
     fi
     if [ -n "$default" ]; then
         msg="${prompt} [${default}]: "
@@ -158,6 +172,14 @@ lsshm_confirm() {
         [ "$default" = "yes" ]
         return
     fi
+    if lsshm_uses_dialog_ui; then
+        lsshm_tty_restore
+        if dialog --backtitle "$LSSHM_LONG_NAME v$LSSHM_VERSION" \
+            --yesno "$prompt" 10 70 3>&1 1>&2 2>&3; then
+            return 0
+        fi
+        return 1
+    fi
     [ "$default" = "yes" ] && hint="[O/n]"
     if ! lsshm_read_line answer "${prompt} ${hint} "; then
         [ "$default" = "yes" ]
@@ -173,6 +195,9 @@ lsshm_confirm() {
 }
 
 lsshm_pause() {
+    if lsshm_uses_dialog_ui; then
+        return 0
+    fi
     lsshm_is_interactive || return 0
     lsshm_read_line _ "Appuyez sur Entrée pour continuer... " || true
 }
