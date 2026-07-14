@@ -38,10 +38,9 @@ id_dsa
 id_ed25519_sk
 id_ecdsa_sk
 *.pub.local
+# Fichiers SSH utilisateur (nom exact ; ne pas utiliser authorized_keys.* qui exclurait src/authorized_keys.sh)
 authorized_keys
-authorized_keys.*
 known_hosts
-known_hosts.*
 ssh_config.local
 sshd_config.local
 *.gpg
