@@ -41,6 +41,7 @@ lsshm_dialog_install() {
 
 # Entry point for `lsshm ui`. Falls back to CLI when dialog is unavailable.
 lsshm_dialog_main() {
+    lsshm_require_interactive
     if ! lsshm_dialog_available; then
         if ! lsshm_dialog_offer_install; then
             lsshm_cli_main

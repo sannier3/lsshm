@@ -92,28 +92,65 @@ lsshm_header() {
 # -----------------------------------------------------------------------------
 # Prompts
 # -----------------------------------------------------------------------------
+# True when stdin/stdout is a TTY, or when /dev/tty is available (IDE
+# terminals, sudo, Git Bash on Windows often lack -t 0 but still have /dev/tty).
+lsshm_have_tty() {
+    [ -e /dev/tty ] 2>/dev/null && [ -r /dev/tty ] && [ -w /dev/tty ]
+}
+
 lsshm_is_interactive() {
-    [ -t 0 ] && [ -t 1 ] && [ "${LSSHM_ASSUME_YES:-0}" != "1" ]
+    [ "${LSSHM_ASSUME_YES:-0}" != "1" ] || return 1
+    [ -t 0 ] && [ -t 1 ] && return 0
+    lsshm_have_tty && return 0
+    return 1
+}
+
+lsshm_require_interactive() {
+    if lsshm_is_interactive; then
+        return 0
+    fi
+    lsshm_error "Un terminal interactif est requis pour le menu."
+    lsshm_info "Sans menu : lsshm status | lsshm doctor | lsshm server status | lsshm key list"
+    lsshm_info "Pour installer : curl -fsSL .../lsshm.sh | bash -s -- install"
+    exit 1
+}
+
+# Read one line from stdin or /dev/tty. Sets the named variable on success.
+lsshm_read_line() {
+    local __var="$1" __prompt="$2" __line=""
+    if [ -t 0 ]; then
+        IFS= read -r -p "$__prompt" __line || return 1
+    elif lsshm_have_tty; then
+        IFS= read -r -p "$__prompt" __line </dev/tty || return 1
+    else
+        return 1
+    fi
+    printf -v "$__var" '%s' "$__line"
+    return 0
 }
 
 lsshm_prompt() {
     # lsshm_prompt PROMPT [DEFAULT] -> echoes answer
-    local prompt="$1" default="${2:-}" answer=""
+    local prompt="$1" default="${2:-}" answer="" msg=""
     if ! lsshm_is_interactive; then
-        printf '%s' "$default"
-        return 0
+        [ -n "$default" ] && { printf '%s' "$default"; return 0; }
+        return 1
     fi
     if [ -n "$default" ]; then
-        read -r -p "$prompt [$default]: " answer </dev/tty || answer=""
+        msg="${prompt} [${default}]: "
     else
-        read -r -p "$prompt: " answer </dev/tty || answer=""
+        msg="${prompt}: "
     fi
-    printf '%s' "${answer:-$default}"
+    if lsshm_read_line answer "$msg"; then
+        printf '%s' "${answer:-$default}"
+    else
+        printf '%s' "$default"
+    fi
 }
 
 lsshm_confirm() {
     # lsshm_confirm PROMPT [default_yes] -> return 0 for yes
-    local prompt="$1" default="${2:-no}" answer=""
+    local prompt="$1" default="${2:-no}" answer="" hint="[o/N]"
     if [ "${LSSHM_ASSUME_YES:-0}" = "1" ]; then
         return 0
     fi
@@ -121,9 +158,11 @@ lsshm_confirm() {
         [ "$default" = "yes" ]
         return
     fi
-    local hint="[o/N]"
     [ "$default" = "yes" ] && hint="[O/n]"
-    read -r -p "$prompt $hint " answer </dev/tty || answer=""
+    if ! lsshm_read_line answer "${prompt} ${hint} "; then
+        [ "$default" = "yes" ]
+        return
+    fi
     answer="$(printf '%s' "$answer" | tr '[:upper:]' '[:lower:]')"
     case "$answer" in
         o|oui|y|yes) return 0 ;;
@@ -135,7 +174,7 @@ lsshm_confirm() {
 
 lsshm_pause() {
     lsshm_is_interactive || return 0
-    read -r -p "Appuyez sur Entrée pour continuer..." _ </dev/tty || true
+    lsshm_read_line _ "Appuyez sur Entrée pour continuer... " || true
 }
 
 # -----------------------------------------------------------------------------

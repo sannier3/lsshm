@@ -30,6 +30,7 @@ EOF
 }
 
 lsshm_cli_main() {
+    lsshm_require_interactive
     while true; do
         clear 2>/dev/null || true
         lsshm_header
