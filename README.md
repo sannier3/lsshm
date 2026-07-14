@@ -20,76 +20,34 @@ LSSHM gère quatre domaines distincts, visibles dans tous les menus :
 
 ## Installation
 
-### Depuis le dépôt (recommandé)
+Installe LSSHM dans `~/.local` et crée la commande `lsshm` :
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
 ```
 
-Pour examiner le script avant installation :
+Puis lancez :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh -o /tmp/lsshm.sh
-less /tmp/lsshm.sh
-bash /tmp/lsshm.sh install
+export PATH="$HOME/.local/bin:$PATH"   # une fois, dans le terminal actuel
+lsshm
 ```
 
-### Depuis une copie locale
+Les prochaines connexions SSH chargeront le PATH automatiquement (`~/.profile`).
+
+> Pas de `sudo` pour l'installation. Les privilèges root ne sont demandés que pour gérer le serveur SSH ou les fichiers système.
+
+## Exécution sans installation
+
+Pour **essayer** LSSHM ou lancer **une commande ponctuelle**, sans rien installer :
 
 ```bash
-./scripts/build.sh    # assemble lsshm.sh depuis src/
-./lsshm.sh install
-# ou
-./install.sh
-```
-
-### Emplacements (XDG)
-
-```text
-~/.local/bin/lsshm              -> ~/.local/share/lsshm/lsshm.sh
-~/.local/share/lsshm/lsshm.sh
-~/.config/lsshm/config
-~/.local/state/lsshm/
-~/.cache/lsshm/
-```
-
-L'installation ne nécessite pas `sudo`. Les privilèges sont demandés uniquement pour les opérations système (service SSH, `/etc/ssh/`, comptes, pare-feu).
-
-### Exécuter sans installer
-
-LSSHM peut être lancé **sans** copie dans `~/.local`. C'est le même fichier `lsshm.sh` (assemblé depuis `src/` par `./scripts/build.sh`) ; seul le chemin d'appel change.
-
-**Depuis GitHub** - un lien, deux usages :
-
-```bash
-# Installer (recommandé pour un usage régulier)
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
-
-# Exécuter directement, sans installer
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- doctor
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash              # menu CLI
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash              # menu
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status   # état
 curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- ui       # interface dialog
 ```
 
-**Depuis une copie locale du dépôt** :
-
-```bash
-./scripts/build.sh          # si lsshm.sh n'est pas encore généré
-./lsshm.sh                  # menu CLI
-./lsshm.sh status
-./lsshm.sh doctor
-./lsshm.sh server status
-```
-
-Le dossier `src/` sert au **développement** ; à l'exécution, tout le code est déjà inclus dans `lsshm.sh`. Inutile de sourcer `src/` à la main.
-
-Sans installation permanente :
-- la commande `lsshm` n'est pas ajoutée au PATH ;
-- le script est retéléchargé à chaque `curl` (usage ponctuel ou essai) ;
-- la configuration (`~/.config/lsshm/`) et l'état (`~/.local/state/lsshm/`) sont quand même créés si besoin.
-
-Pour un usage quotidien, préférez `install` puis `lsshm`.
+C'est le **même fichier** qu'à l'installation ; le script est juste exécuté directement (retéléchargé à chaque `curl`).
 
 ## Utilisation
 
@@ -172,19 +130,15 @@ Options globales : `--user NOM`, `-y`, `--no-color`, `-h`.
 
 ## Développement
 
-Structure modulaire assemblée en un seul fichier :
-
-```text
-src/           modules Bash
-scripts/build.sh
-tests/         tests unitaires
-lsshm.sh       généré (ne pas éditer à la main)
-```
+Depuis une copie locale du dépôt :
 
 ```bash
-./scripts/build.sh
-./tests/run.sh
+bash scripts/build.sh
+bash lsshm.sh install    # ou : bash install.sh
+bash tests/run.sh
 ```
+
+Structure : modules dans `src/`, fichier unique `lsshm.sh` généré par `scripts/build.sh`.
 
 Voir `CONTRIBUTING.md` et `CHANGELOG.md`.
 
