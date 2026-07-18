@@ -512,24 +512,87 @@ function Repair-LsshmAccessPermissions {
 # Cles locales
 # =============================================================================
 
+function Get-LsshmKeyPairs {
+    $list = [System.Collections.Generic.List[string]]::new()
+    if (-not (Test-Path -LiteralPath $script:LSSHM_SSH_DIR)) { return @() }
+    Get-ChildItem -LiteralPath $script:LSSHM_SSH_DIR -Filter '*.pub' -File -ErrorAction SilentlyContinue |
+        Sort-Object Name |
+        ForEach-Object {
+            $list.Add(($_.FullName -replace '\.pub$', ''))
+        }
+    return , $list.ToArray()
+}
+
 function Show-LsshmKeysList {
     Write-Host ("Repertoire : {0}" -f $script:LSSHM_SSH_DIR)
     Write-Host ''
-    if (-not (Test-Path -LiteralPath $script:LSSHM_SSH_DIR)) {
-        Write-LsshmInfo 'Aucun repertoire .ssh.'
-        return
+    $keys = @(Get-LsshmKeyPairs)
+    if ($keys.Count -eq 0) {
+        Write-LsshmInfo 'Aucune paire de cles detectee.'
+        return $false
     }
-    $i = 0
-    Get-ChildItem -LiteralPath $script:LSSHM_SSH_DIR -Filter '*.pub' -File -ErrorAction SilentlyContinue | ForEach-Object {
-        $i++
-        $priv = $_.FullName -replace '\.pub$', ''
-        $fp = & ssh-keygen -lf $_.FullName 2>$null
-        Write-Host ("{0}. {1}" -f $i, $_.BaseName)
-        Write-Host ("   Publique : {0}" -f $_.FullName)
+    for ($i = 0; $i -lt $keys.Count; $i++) {
+        $priv = $keys[$i]
+        $pub = "$priv.pub"
+        $fp = & ssh-keygen -lf $pub 2>$null
+        Write-Host ("{0}. {1}" -f ($i + 1), (Split-Path $priv -Leaf))
+        Write-Host ("   Publique : {0}" -f $pub)
         Write-Host ("   Privee   : {0}" -f $(if (Test-Path -LiteralPath $priv) { "$priv (presente)" } else { 'absente' }))
         Write-Host ("   Empreinte: {0}" -f $fp)
     }
-    if ($i -eq 0) { Write-LsshmInfo 'Aucune paire de cles detectee.' }
+    return $true
+}
+
+function Select-LsshmKey {
+    param(
+        [string]$Prompt = 'Choisir une cle',
+        [switch]$RequirePrivate,
+        [string]$GivenPath = ''
+    )
+
+    if ($GivenPath) {
+        $path = $GivenPath
+        if ($path -like '*.pub') { $path = $path -replace '\.pub$', '' }
+        if ($RequirePrivate -and -not (Test-Path -LiteralPath $path)) {
+            Write-LsshmError "Cle privee introuvable : $path"
+            return $null
+        }
+        if (-not (Test-Path -LiteralPath $path) -and -not (Test-Path -LiteralPath "$path.pub")) {
+            Write-LsshmError "Cle introuvable : $GivenPath"
+            return $null
+        }
+        return $path
+    }
+
+    if (-not (Show-LsshmKeysList)) { return $null }
+    Write-Host ''
+    $choice = Read-LsshmPrompt "$Prompt (numero)"
+    if (-not $choice) {
+        Write-LsshmInfo 'Annule.'
+        return $null
+    }
+
+    if ((Test-Path -LiteralPath $choice) -or (Test-Path -LiteralPath "$choice.pub")) {
+        if ($choice -like '*.pub') { $choice = $choice -replace '\.pub$', '' }
+        return $choice
+    }
+
+    $n = 0
+    if (-not [int]::TryParse($choice, [ref]$n)) {
+        Write-LsshmError "Choix invalide : $choice"
+        return $null
+    }
+    $keys = @(Get-LsshmKeyPairs)
+    if ($n -lt 1 -or $n -gt $keys.Count) {
+        Write-LsshmError ("Numero hors plage (1-{0})." -f $keys.Count)
+        return $null
+    }
+    $path = $keys[$n - 1]
+    if ($RequirePrivate -and -not (Test-Path -LiteralPath $path)) {
+        Write-LsshmError ("Cle privee absente pour {0}." -f (Split-Path $path -Leaf))
+        return $null
+    }
+    return $path
 }
 
 function New-LsshmKey {
@@ -555,7 +618,9 @@ function New-LsshmKey {
 }
 
 function Show-LsshmKeyInspect {
-    $path = Read-LsshmPrompt 'Chemin de la cle' (Join-Path $script:LSSHM_SSH_DIR 'id_ed25519')
+    param([string]$GivenPath = '')
+    $path = Select-LsshmKey -Prompt 'Cle a inspecter' -GivenPath $GivenPath
+    if (-not $path) { return }
     $pub = if (Test-Path -LiteralPath "$path.pub") { "$path.pub" } else { $path }
     if (-not (Test-Path -LiteralPath $pub)) {
         Write-LsshmError "Fichier introuvable : $pub"
@@ -566,25 +631,28 @@ function Show-LsshmKeyInspect {
 }
 
 function Show-LsshmKeyExport {
-    $path = Read-LsshmPrompt 'Chemin de la cle' (Join-Path $script:LSSHM_SSH_DIR 'id_ed25519')
-    $pub = if ($path -like '*.pub') { $path } elseif (Test-Path -LiteralPath "$path.pub") { "$path.pub" } else { $null }
-    if (-not $pub -or -not (Test-Path -LiteralPath $pub)) {
-        Write-LsshmError 'Refus d exporter autre chose qu un fichier .pub.'
+    param([string]$GivenPath = '')
+    $path = Select-LsshmKey -Prompt 'Cle a exporter' -GivenPath $GivenPath
+    if (-not $path) { return }
+    $pub = "$path.pub"
+    if (-not (Test-Path -LiteralPath $pub)) {
+        Write-LsshmError "Cle publique introuvable : $pub"
         return
     }
+    Write-LsshmInfo "Cle publique ($pub) :"
     Get-Content -LiteralPath $pub
 }
 
 function Remove-LsshmKey {
-    $path = Read-LsshmPrompt 'Chemin de la cle a supprimer'
-    if (-not $path) { Write-LsshmInfo 'Annule.'; return }
+    param([string]$GivenPath = '')
+    $path = Select-LsshmKey -Prompt 'Cle a supprimer' -GivenPath $GivenPath
+    if (-not $path) { return }
     $priv = $path
     $pub = "$path.pub"
-    if ($path -like '*.pub') {
-        $priv = $path -replace '\.pub$', ''
-        $pub = $path
-    }
-    if (-not (Confirm-Lsshm 'Confirmer la suppression de la paire de cles ?')) { return }
+    Write-LsshmWarn 'Suppression de la paire de cles :'
+    if (Test-Path -LiteralPath $priv) { Write-Host "  $priv" }
+    if (Test-Path -LiteralPath $pub) { Write-Host "  $pub" }
+    if (-not (Confirm-Lsshm 'Une sauvegarde sera creee. Confirmer la suppression ?')) { return }
     Ensure-LsshmDirs
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     foreach ($f in @($priv, $pub)) {
@@ -601,6 +669,25 @@ function Show-LsshmAgentList {
         Write-LsshmWarn 'Aucun ssh-agent detecte. Sous Windows : Get-Service ssh-agent ; Start-Service ssh-agent'
     }
     & ssh-add -l 2>&1 | ForEach-Object { Write-Host $_ }
+}
+
+function Add-LsshmAgentKey {
+    $path = Select-LsshmKey -Prompt 'Cle a ajouter a ssh-agent' -RequirePrivate
+    if (-not $path) { return }
+    & ssh-add $path
+    if ($LASTEXITCODE -eq 0) { Write-LsshmOk 'Cle ajoutee a ssh-agent.' } else { Write-LsshmError 'Echec.' }
+}
+
+function Remove-LsshmAgentKey {
+    if (Confirm-Lsshm 'Retirer toutes les cles de l agent ?') {
+        & ssh-add -D
+        Write-LsshmOk 'Toutes les cles retirees.'
+        return
+    }
+    $path = Select-LsshmKey -Prompt 'Cle a retirer de ssh-agent' -RequirePrivate
+    if (-not $path) { return }
+    & ssh-add -d $path
+    if ($LASTEXITCODE -eq 0) { Write-LsshmOk 'Cle retiree de ssh-agent.' } else { Write-LsshmError 'Echec.' }
 }
 
 # =============================================================================
@@ -1081,16 +1168,20 @@ function Show-LsshmKeysMenu {
         Write-Host '  4. Afficher / exporter une cle publique'
         Write-Host '  5. Supprimer une paire de cles'
         Write-Host '  6. ssh-agent : lister'
-        Write-Host '  7. Retour'
-        $c = Read-LsshmPrompt 'Choix' '7'
+        Write-Host '  7. ssh-agent : ajouter une cle'
+        Write-Host '  8. ssh-agent : retirer une cle'
+        Write-Host '  9. Retour'
+        $c = Read-LsshmPrompt 'Choix' '9'
         switch ($c) {
-            '1' { Show-LsshmKeysList; Pause-Lsshm }
+            '1' { Show-LsshmKeysList | Out-Null; Pause-Lsshm }
             '2' { New-LsshmKey; Pause-Lsshm }
             '3' { Show-LsshmKeyInspect; Pause-Lsshm }
             '4' { Show-LsshmKeyExport; Pause-Lsshm }
             '5' { Remove-LsshmKey; Pause-Lsshm }
             '6' { Show-LsshmAgentList; Pause-Lsshm }
-            '7' { return }
+            '7' { Add-LsshmAgentKey; Pause-Lsshm }
+            '8' { Remove-LsshmAgentKey; Pause-Lsshm }
+            '9' { return }
             default { Write-LsshmWarn 'Choix invalide.'; Pause-Lsshm }
         }
     }

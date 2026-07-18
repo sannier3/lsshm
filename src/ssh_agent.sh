@@ -24,23 +24,21 @@ lsshm_agent_list() {
 }
 
 lsshm_agent_add() {
-    local path="$1"
+    local path="${1:-}"
     lsshm_agent_available || return 1
-    [ -n "$path" ] || path="$(lsshm_prompt 'Chemin de la clé privée' "$(lsshm_keys_dir)/id_ed25519")"
-    [ -f "$path" ] || { lsshm_error "Clé privée introuvable : $path"; return 1; }
+    path="$(lsshm_keys_pick 'Clé à ajouter à ssh-agent' 1 "$path")" || return 1
     ssh-add "$path" && lsshm_ok "Clé ajoutée à ssh-agent."
 }
 
 lsshm_agent_remove() {
-    local path="$1"
+    local path="${1:-}"
     lsshm_agent_available || return 1
     if [ -z "$path" ]; then
         if lsshm_confirm "Retirer toutes les clés de l'agent ?" no; then
             ssh-add -D && lsshm_ok "Toutes les clés retirées."
             return 0
         fi
-        path="$(lsshm_prompt 'Chemin de la clé privée à retirer' '')"
     fi
-    [ -n "$path" ] || { lsshm_info "Annulé."; return 0; }
+    path="$(lsshm_keys_pick 'Clé à retirer de ssh-agent' 1 "$path")" || return 1
     ssh-add -d "$path" && lsshm_ok "Clé retirée de ssh-agent."
 }

@@ -15,6 +15,16 @@ if command -v ssh-keygen >/dev/null 2>&1; then
     _fp="$(lsshm_access_fingerprint_line "$_line")"
     assert_true "printf '%s' \"$_fp\" | grep -q 'SHA256:'" "fingerprint contains SHA256"
     assert_true "printf '%s' \"$_fp\" | grep -qi 'ED25519'" "fingerprint reports ED25519"
+
+    # Key picker resolves an explicit path without prompting.
+    _save_keys_dir="$(declare -f lsshm_keys_dir)"
+    lsshm_keys_dir() { printf '%s' "$_tmpdir"; }
+    _picked="$(lsshm_keys_pick 'test' 0 "$_tmpdir/id_ed25519")"
+    assert_eq "$_tmpdir/id_ed25519" "$_picked" "keys_pick accepts explicit path"
+    _picked="$(lsshm_keys_pick 'test' 0 "$_tmpdir/id_ed25519.pub")"
+    assert_eq "$_tmpdir/id_ed25519" "$_picked" "keys_pick strips .pub from path"
+    eval "$_save_keys_dir"
+
     rm -rf "$_tmpdir"
 else
     printf '  skip ssh-keygen not available\n'
