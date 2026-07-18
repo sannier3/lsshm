@@ -29,7 +29,29 @@ lsshm_access_fingerprint_line() {
     printf '%s' "$out"
 }
 
+# Classify a line from authorized_keys for shared indexing.
+# Sets: _ak_kind (active|disabled|skip), _ak_keyline (raw key line to fingerprint).
+lsshm_access_classify_line() {
+    local line="$1"
+    _ak_kind="skip"
+    _ak_keyline=""
+    case "$line" in
+        '# LSSHM-DISABLED '*)
+            _ak_kind="disabled"
+            _ak_keyline="${line#\# LSSHM-DISABLED }"
+            ;;
+        ''|'#'*)
+            _ak_kind="skip"
+            ;;
+        *)
+            _ak_kind="active"
+            _ak_keyline="$line"
+            ;;
+    esac
+}
+
 # List authorized keys for a user with details.
+# Indexing includes both active and LSSHM-DISABLED entries (same as remove/disable).
 lsshm_access_list() {
     local user="${1:-$LSSHM_CALLING_USER}"
     local file; file="$(lsshm_access_file "$user")"
@@ -42,34 +64,30 @@ lsshm_access_list() {
         return 0
     fi
 
-    local i=0 line fp bits type comment
+    local i=0 line fp bits type comment info
     while IFS= read -r line; do
-        case "$line" in
-            ''|'#'*)
-                case "$line" in
-                    '# LSSHM-DISABLED '*)
-                        i=$((i+1))
-                        printf '%d. [DÉSACTIVÉE] %s\n' "$i" "${line#\# LSSHM-DISABLED }"
-                        ;;
-                esac
-                continue ;;
-        esac
+        lsshm_access_classify_line "$line"
+        [ "$_ak_kind" = "skip" ] && continue
         i=$((i+1))
-        local info; info="$(lsshm_access_fingerprint_line "$line")"
+        info="$(lsshm_access_fingerprint_line "$_ak_keyline")"
         bits="$(printf '%s' "$info" | awk '{print $1}')"
         fp="$(printf '%s' "$info" | awk '{print $2}')"
         type="$(printf '%s' "$info" | awk '{print $NF}' | tr -d '()')"
-        comment="$(printf '%s' "$line" | awk '{ for(i=3;i<=NF;i++) printf "%s%s", $i, (i<NF?" ":"") }')"
-        printf '%d. %s\n' "$i" "${comment:-sans commentaire}"
+        comment="$(printf '%s' "$_ak_keyline" | awk '{ for(i=3;i<=NF;i++) printf "%s%s", $i, (i<NF?" ":"") }')"
+        if [ "$_ak_kind" = "disabled" ]; then
+            printf '%d. [DÉSACTIVÉE] %s\n' "$i" "${comment:-sans commentaire}"
+        else
+            printf '%d. %s\n' "$i" "${comment:-sans commentaire}"
+        fi
         printf '   Type       : %s (%s bits)\n' "${type:-?}" "${bits:-?}"
         printf '   Empreinte  : %s\n' "${fp:-inconnue}"
-        case "$line" in
-            *from=*)       printf '   Restriction : %s\n' "$(printf '%s' "$line" | grep -o 'from="[^"]*"')" ;;
+        case "$_ak_keyline" in
+            *from=*)       printf '   Restriction : %s\n' "$(printf '%s' "$_ak_keyline" | grep -o 'from="[^"]*"')" ;;
         esac
-        case "$line" in
-            *command=*)    printf '   Commande    : %s\n' "$(printf '%s' "$line" | grep -o 'command="[^"]*"')" ;;
+        case "$_ak_keyline" in
+            *command=*)    printf '   Commande    : %s\n' "$(printf '%s' "$_ak_keyline" | grep -o 'command="[^"]*"')" ;;
         esac
-        case "$line" in
+        case "$_ak_keyline" in
             *no-port-forwarding*) printf '   Transfert  : interdit\n' ;;
         esac
     done <<EOF
@@ -142,7 +160,7 @@ lsshm_access_add() {
     lsshm_ok "Clé ajoutée pour $user."
 }
 
-# Remove a key by fingerprint or by 1-based index.
+# Remove a key by fingerprint or by 1-based index (same numbering as list).
 lsshm_access_remove() {
     local user="${1:-$LSSHM_CALLING_USER}"
     local target="${2:-}"
@@ -158,12 +176,16 @@ lsshm_access_remove() {
 
     lsshm_backup_authorized_keys "$user" >/dev/null 2>&1 || true
     local tmp; tmp="$(lsshm_mktemp)"
-    local i=0 removed=0 line
+    local i=0 removed=0 line fp
     while IFS= read -r line; do
-        case "$line" in ''|'#'*) printf '%s\n' "$line" >>"$tmp"; continue ;; esac
+        lsshm_access_classify_line "$line"
+        if [ "$_ak_kind" = "skip" ]; then
+            printf '%s\n' "$line" >>"$tmp"
+            continue
+        fi
         i=$((i+1))
-        local fp; fp="$(lsshm_access_fingerprint_line "$line" | awk '{print $2}')"
-        if [ "$target" = "$i" ] || [ "$target" = "$fp" ]; then
+        fp="$(lsshm_access_fingerprint_line "$_ak_keyline" | awk '{print $2}')"
+        if [ "$target" = "$i" ] || { [ -n "$fp" ] && [ "$target" = "$fp" ]; }; then
             removed=1
             continue
         fi
@@ -208,7 +230,7 @@ lsshm_access_repair() {
     lsshm_info "  .ssh 700, authorized_keys 600, clés privées 600, clés publiques 644"
 }
 
-# Temporarily disable or re-enable a key by fingerprint or index.
+# Temporarily disable or re-enable a key by fingerprint or index (same numbering as list).
 lsshm_access_disable() {
     local user="${1:-$LSSHM_CALLING_USER}"
     local target="${2:-}"
@@ -224,33 +246,25 @@ lsshm_access_disable() {
 
     lsshm_backup_authorized_keys "$user" >/dev/null 2>&1 || true
     local tmp; tmp="$(lsshm_mktemp)"
-    local i=0 changed=0 line
+    local i=0 changed=0 line fp
     while IFS= read -r line; do
-        case "$line" in
-            '# LSSHM-DISABLED '*)
-                local orig="${line#\# LSSHM-DISABLED }"
-                local fp; fp="$(lsshm_access_fingerprint_line "$orig" | awk '{print $2}')"
-                if [ "$target" = "$fp" ]; then
-                    printf '%s\n' "$orig" >>"$tmp"
-                    changed=1
-                    continue
-                fi
-                printf '%s\n' "$line" >>"$tmp"
-                ;;
-            ''|'#'*)
-                printf '%s\n' "$line" >>"$tmp"
-                ;;
-            *)
-                i=$((i+1))
-                local fp; fp="$(lsshm_access_fingerprint_line "$line" | awk '{print $2}')"
-                if [ "$target" = "$i" ] || [ "$target" = "$fp" ]; then
-                    printf '# LSSHM-DISABLED %s\n' "$line" >>"$tmp"
-                    changed=1
-                else
-                    printf '%s\n' "$line" >>"$tmp"
-                fi
-                ;;
-        esac
+        lsshm_access_classify_line "$line"
+        if [ "$_ak_kind" = "skip" ]; then
+            printf '%s\n' "$line" >>"$tmp"
+            continue
+        fi
+        i=$((i+1))
+        fp="$(lsshm_access_fingerprint_line "$_ak_keyline" | awk '{print $2}')"
+        if [ "$target" = "$i" ] || { [ -n "$fp" ] && [ "$target" = "$fp" ]; }; then
+            if [ "$_ak_kind" = "disabled" ]; then
+                printf '%s\n' "$_ak_keyline" >>"$tmp"
+            else
+                printf '# LSSHM-DISABLED %s\n' "$line" >>"$tmp"
+            fi
+            changed=1
+        else
+            printf '%s\n' "$line" >>"$tmp"
+        fi
     done <<EOF
 $content
 EOF

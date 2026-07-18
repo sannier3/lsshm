@@ -190,13 +190,45 @@ lsshm_hosts_copy_key() {
 lsshm_hosts_revoke_key() {
     local name="$1"
     [ -n "$name" ] || name="$(lsshm_prompt 'Nom de l’hôte' '')"
+    [ -n "$name" ] || { lsshm_info "Annulé."; return 0; }
     local identity; identity="$(lsshm_hosts_get_field "$name" IdentityFile)"
     identity="${identity:-$(lsshm_keys_dir)/id_ed25519}"
+    # Expand ~ in IdentityFile if present.
+    case "$identity" in
+        "~/"*) identity="$HOME/${identity#~/}" ;;
+    esac
     local pub="$identity.pub"
     [ -f "$pub" ] || { lsshm_error "Clé publique introuvable : $pub"; return 1; }
     local keytext; keytext="$(awk '{print $2}' "$pub")"
+    [ -n "$keytext" ] || { lsshm_error "Corps de clé publique vide."; return 1; }
+    # OpenSSH key bodies are base64; reject anything else before remote use.
+    case "$keytext" in
+        *[!A-Za-z0-9+/=]*)
+            lsshm_error "Corps de clé invalide (caractères inattendus)."
+            return 1
+            ;;
+    esac
     lsshm_warn "Retrait de la clé sur $name (nécessite un accès autorisé)."
     lsshm_confirm "Continuer ?" no || return 0
-    ssh "$name" "grep -v '$keytext' ~/.ssh/authorized_keys > ~/.ssh/authorized_keys.tmp && mv ~/.ssh/authorized_keys.tmp ~/.ssh/authorized_keys" \
-        && lsshm_ok "Clé retirée sur $name." || lsshm_error "Échec du retrait."
+    # Exact field match via awk (not grep regex). Key passed as env, not shell-interpolated.
+    if KEYBLOB="$keytext" ssh "$name" 'bash -s' <<'REMOTE'
+set -euo pipefail
+ak="${HOME}/.ssh/authorized_keys"
+[ -f "$ak" ] || { echo "authorized_keys introuvable" >&2; exit 1; }
+tmp="$(mktemp "${HOME}/.ssh/authorized_keys.lsshm.XXXXXX")"
+awk -v k="$KEYBLOB" '
+{
+  keep=1
+  for (i=1; i<=NF; i++) if ($i == k) keep=0
+  if (keep) print
+}' "$ak" >"$tmp"
+mv "$tmp" "$ak"
+chmod 600 "$ak"
+REMOTE
+    then
+        lsshm_ok "Clé retirée sur $name."
+    else
+        lsshm_error "Échec du retrait."
+        return 1
+    fi
 }

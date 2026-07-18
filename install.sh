@@ -16,16 +16,44 @@ if [ -f "$SCRIPT_DIR/lsshm.sh" ]; then
 fi
 
 tmp="$(mktemp)"
-trap 'rm -f "$tmp"' EXIT
+sums="$(mktemp)"
+trap 'rm -f "$tmp" "$sums"' EXIT
 
-if command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW/lsshm.sh" -o "$tmp"
-elif command -v wget >/dev/null 2>&1; then
-    wget -qO "$tmp" "$REPO_RAW/lsshm.sh"
+download() {
+    local url="$1" out="$2"
+    if command -v curl >/dev/null 2>&1; then
+        curl -fsSL "$url" -o "$out"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "$out" "$url"
+    else
+        echo "install.sh: neither curl nor wget is available." >&2
+        exit 1
+    fi
+}
+
+download "$REPO_RAW/lsshm.sh" "$tmp"
+bash -n "$tmp" || { echo "install.sh: downloaded script failed syntax check." >&2; exit 1; }
+
+# Fail-closed SHA-256 verification before executing the downloaded script.
+download "$REPO_RAW/SHA256SUMS" "$sums" || {
+    echo "install.sh: SHA256SUMS unavailable; refusing to continue." >&2
+    exit 1
+}
+expected="$(awk '/[[:space:]]lsshm\.sh$/{print $1; exit}' "$sums")"
+[ -n "$expected" ] || { echo "install.sh: lsshm.sh hash missing from SHA256SUMS." >&2; exit 1; }
+if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(sha256sum "$tmp" | awk '{print $1}')"
+elif command -v shasum >/dev/null 2>&1; then
+    actual="$(shasum -a 256 "$tmp" | awk '{print $1}')"
 else
-    echo "install.sh: neither curl nor wget is available." >&2
+    echo "install.sh: no SHA-256 tool available; refusing to continue." >&2
+    exit 1
+fi
+if [ "$expected" != "$actual" ]; then
+    echo "install.sh: SHA-256 mismatch." >&2
+    echo "  expected: $expected" >&2
+    echo "  actual:   $actual" >&2
     exit 1
 fi
 
-bash -n "$tmp" || { echo "install.sh: downloaded script failed syntax check." >&2; exit 1; }
 exec bash "$tmp" install "$@"

@@ -137,6 +137,7 @@ lsshm_install() {
         local tmp; tmp="$(lsshm_mktemp)"
         lsshm_download "$LSSHM_REPO_RAW/lsshm.sh" "$tmp" || lsshm_die "Échec du téléchargement."
         bash -n "$tmp" || lsshm_die "Le script téléchargé est invalide."
+        lsshm_update_verify_checksum "$tmp" || lsshm_die "Vérification SHA-256 échouée : installation annulée."
         install -m 0755 "$tmp" "$LSSHM_INSTALL_TARGET"
     fi
 

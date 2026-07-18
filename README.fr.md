@@ -7,7 +7,7 @@ LSSHM est un outil de gestion OpenSSH **local** : serveur SSH, accès entrants, 
 Interface CLI par défaut (sans dépendance) et interface `dialog` facultative.
 
 > [!WARNING]
-> LSSHM est en développement actif (v0.1.0). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+> LSSHM est en développement actif (v0.2.0). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
 
 ## Positionnement
 
@@ -21,6 +21,8 @@ LSSHM gère quatre domaines distincts, visibles dans tous les menus :
 | Machines distantes | `~/.ssh/config`, `~/.ssh/known_hosts` |
 
 ## Installation
+
+### Linux
 
 Installe LSSHM dans `~/.local` et crée la commande `lsshm` :
 
@@ -38,6 +40,23 @@ lsshm
 Les prochaines connexions SSH chargeront le PATH automatiquement (`~/.profile`).
 
 > Pas de `sudo` pour l'installation. Les privilèges root ne sont demandés que pour gérer le serveur SSH ou les fichiers système.
+
+### Windows (PowerShell)
+
+Téléchargez et lancez l'interface CLI PowerShell (mêmes menus et concepts que sous Linux) :
+
+```powershell
+irm https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
+powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1
+```
+
+Ou installation dans le profil utilisateur :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1 install
+```
+
+La gestion du serveur OpenSSH nécessite PowerShell **en administrateur**. Les clés utilisateur et `~\.ssh\config` n'en ont pas besoin.
 
 ## Exécution sans installation
 
@@ -117,7 +136,7 @@ lsshm host edit|delete|test|connect|copy-key|revoke-key NOM
 
 Options globales : `--user NOM`, `-y`, `--no-color`, `-h`.
 
-## Fonctionnalités v0.1.0
+## Fonctionnalités v0.2.0
 
 - Détection Debian / dérivés, systemd, LXC
 - Installation et gestion du service OpenSSH Server

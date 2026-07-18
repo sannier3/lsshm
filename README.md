@@ -7,7 +7,7 @@ LSSHM is a **local** OpenSSH management tool: SSH server, incoming access, outgo
 Default dependency-free CLI and optional `dialog` interface.
 
 > [!WARNING]
-> LSSHM is under active development (v0.1.0). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
+> LSSHM is under active development (v0.2.0). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
 
 ## Scope
 
@@ -21,6 +21,8 @@ LSSHM manages four separate areas, visible in every menu:
 | Remote hosts | `~/.ssh/config`, `~/.ssh/known_hosts` |
 
 ## Installation
+
+### Linux
 
 Installs LSSHM into `~/.local` and creates the `lsshm` command:
 
@@ -38,6 +40,23 @@ lsshm
 Future SSH sessions will load the PATH automatically (`~/.profile`).
 
 > No `sudo` required for installation. Root privileges are only requested to manage the SSH server or system files.
+
+### Windows (PowerShell)
+
+Download and run the PowerShell CLI (same menus and concepts as Linux):
+
+```powershell
+irm https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
+powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1
+```
+
+Or install into the user profile:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1 install
+```
+
+OpenSSH Server operations require an **elevated** PowerShell session. User keys and `~\.ssh\config` do not.
 
 ## Run without installing
 
@@ -117,7 +136,7 @@ lsshm host edit|delete|test|connect|copy-key|revoke-key NAME
 
 Global options: `--user NAME`, `-y`, `--no-color`, `-h`.
 
-## Features (v0.1.0)
+## Features (v0.2.0)
 
 - Debian / derivatives, systemd, and LXC detection
 - OpenSSH Server installation and service management

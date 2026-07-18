@@ -107,11 +107,13 @@ lsshm_dialog_main() {
     LSSHM_UI_MODE=1
     export LSSHM_UI_MODE
     lsshm_init_colors
-    trap 'LSSHM_UI_MODE=0; lsshm_init_colors; lsshm_tty_restore' EXIT INT TERM
+    # Preserve temp-file cleanup from main; do not replace it entirely.
+    trap 'LSSHM_UI_MODE=0; lsshm_init_colors; lsshm_tty_restore; lsshm_cleanup' EXIT INT TERM
     lsshm_dialog_menu_loop
     LSSHM_UI_MODE=0
     lsshm_init_colors
     lsshm_tty_restore
+    trap lsshm_cleanup EXIT INT TERM
 }
 
 lsshm_dialog_status_text() {

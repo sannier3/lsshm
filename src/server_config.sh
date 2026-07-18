@@ -258,7 +258,8 @@ lsshm_set_pubkey_auth() {
     if lsshm_confirm "Autoriser l'authentification par clé publique ?" yes; then
         lsshm_managed_set "PubkeyAuthentication" "yes" && lsshm_server_reload
     else
-        lsshm_managed_set "PubkeyAuthentication" "no" && lsshm_server_reload
+        lsshm_warn "Désactiver l'authentification par clé peut vous verrouiller."
+        lsshm_apply_dangerous_change "PubkeyAuthentication" "no" "désactivation de l'authentification par clé"
     fi
 }
 

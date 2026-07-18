@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-07-18
+
+### Added
+
+- Windows PowerShell CLI (`lsshm.ps1`) with the same menu structure as Linux:
+  local SSH server, incoming access, outgoing keys, and remote hosts.
+- Windows OpenSSH paths (`%ProgramData%\ssh\`, `administrators_authorized_keys`)
+  and `sshd` service management.
+- Run-without-install documentation for Linux and Windows in README.
+
+### Fixed
+
+- Fail-closed SHA-256 verification for update and install.
+- Dangerous SSH changes always arm automatic rollback (no bypass via `-y`).
+- Safe remote key revoke (`host revoke-key`) with literal matching.
+- Consistent `authorized_keys` indexing for list / remove / disable.
+- `PubkeyAuthentication no` treated as a dangerous change.
+- Dialog UI trap preserves temporary-file cleanup.
+- CI: executable scripts, tracked `authorized_keys.sh` / `known_hosts.sh`.
+
 ## [0.1.0] - 2026-07-14
 
 ### Added
@@ -48,5 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with temporary download, `bash -n` check, SHA-256 verification, atomic
   replacement, and previous-version retention.
 
-[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sannier3/lsshm/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sannier3/lsshm/releases/tag/v0.1.0

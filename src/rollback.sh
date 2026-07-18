@@ -3,16 +3,40 @@
 # rollback.sh - safe application of dangerous changes with automatic rollback
 # =============================================================================
 # Dangerous changes (port, disabling passwords, root access, AllowUsers,
-# ListenAddress) can lock a remote administrator out. LSSHM therefore:
+# PubkeyAuthentication, ListenAddress) can lock a remote administrator out.
+# LSSHM therefore:
 #   1. backs up the configuration
 #   2. schedules an automatic restore
 #   3. applies the change and reloads SSH
 #   4. verifies the port is listening
-#   5. asks for confirmation from a second session
+#   5. asks for confirmation from a second session (never auto-kept via -y)
 #   6. cancels the automatic restore only after confirmation
 
 LSSHM_ROLLBACK_UNIT="lsshm-rollback"
 LSSHM_ROLLBACK_DELAY="${LSSHM_ROLLBACK_DELAY:-120}"
+
+# True when a controlling TTY is available (ignores LSSHM_ASSUME_YES).
+lsshm_can_prompt_tty() {
+    [ -t 0 ] && [ -t 1 ] && return 0
+    lsshm_have_tty && return 0
+    return 1
+}
+
+# Prompt that always reads the TTY; never auto-answered by -y.
+# Used for the post-change rollback confirmation.
+lsshm_prompt_tty() {
+    local prompt="$1" default="${2:-}" answer="" msg=""
+    if [ -n "$default" ]; then
+        msg="${prompt} [${default}]: "
+    else
+        msg="${prompt}: "
+    fi
+    if ! lsshm_read_line answer "$msg"; then
+        printf '%s' "$default"
+        return 0
+    fi
+    printf '%s' "${answer:-$default}"
+}
 
 # Build a self-contained restore script that reverts to a backup archive.
 lsshm_rollback_build_script() {
@@ -66,6 +90,14 @@ lsshm_rollback_cancel() {
 lsshm_apply_dangerous_change() {
     local key="$1" value="$2" description="$3"
 
+    # Dangerous changes require a TTY so the operator can confirm from a second session.
+    # -y may auto-confirm the initial consent, but never skips the rollback safety net.
+    if ! lsshm_can_prompt_tty; then
+        lsshm_error "Changement sensible impossible sans terminal interactif : $description"
+        lsshm_info "Un TTY est requis pour confirmer que la nouvelle session SSH fonctionne."
+        return 1
+    fi
+
     lsshm_warn "Changement sensible : $description"
     if ! lsshm_confirm "Continuer avec une restauration automatique de sécurité ?" no; then
         lsshm_info "Annulé."
@@ -81,13 +113,7 @@ lsshm_apply_dangerous_change() {
         return 1
     fi
 
-    # Non-interactive: apply and reload without arming a rollback prompt.
-    if ! lsshm_is_interactive; then
-        lsshm_server_reload
-        return 0
-    fi
-
-    # 3. Schedule automatic restore.
+    # 3. Always schedule automatic restore (never skip under -y).
     local confirm_flag="$LSSHM_STATE_DIR/rollback.confirm"
     lsshm_run_privileged rm -f "$confirm_flag" 2>/dev/null || true
     local script; script="$(lsshm_rollback_build_script "$archive" "$confirm_flag" "$LSSHM_ROLLBACK_DELAY")"
@@ -103,7 +129,7 @@ lsshm_apply_dangerous_change() {
         lsshm_warn "Impossible de confirmer que le port SSH écoute."
     fi
 
-    # 6. Ask for confirmation from a second session.
+    # 6. Ask for confirmation from a second session (never auto-kept via -y).
     cat <<EOF
 
 La nouvelle configuration est active.
@@ -115,7 +141,7 @@ Ouvrez une seconde connexion SSH avant de confirmer.
   1. La nouvelle connexion fonctionne
   2. Restaurer immédiatement
 EOF
-    local choice; choice="$(lsshm_prompt 'Choix' '2')"
+    local choice; choice="$(lsshm_prompt_tty 'Choix' '2')"
     case "$choice" in
         1)
             lsshm_rollback_cancel "$method" "$confirm_flag"

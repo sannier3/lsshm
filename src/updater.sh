@@ -173,25 +173,40 @@ lsshm_update_run() {
     fi
 }
 
+# Fail-closed: any missing tool, missing file, or mismatch aborts the caller.
 lsshm_update_verify_checksum() {
     local file="$1"
+    if [ ! -f "$file" ]; then
+        lsshm_error "Fichier à vérifier introuvable."
+        return 1
+    fi
     local sums; sums="$(lsshm_mktemp)"
     if ! lsshm_download "$LSSHM_REPO_RAW/SHA256SUMS" "$sums" 2>/dev/null; then
-        lsshm_warn "SHA256SUMS indisponible : vérification ignorée."
-        return 0
+        lsshm_error "SHA256SUMS indisponible : vérification impossible (abandon)."
+        return 1
     fi
     local expected actual
-    expected="$(awk '/lsshm\.sh$/{print $1; exit}' "$sums")"
-    [ -n "$expected" ] || { lsshm_warn "Empreinte lsshm.sh absente de SHA256SUMS."; return 0; }
+    expected="$(awk '/[[:space:]]lsshm\.sh$/{print $1; exit}' "$sums")"
+    if [ -z "$expected" ]; then
+        lsshm_error "Empreinte lsshm.sh absente de SHA256SUMS (abandon)."
+        return 1
+    fi
     if lsshm_have sha256sum; then
         actual="$(sha256sum "$file" | awk '{print $1}')"
     elif lsshm_have shasum; then
         actual="$(shasum -a 256 "$file" | awk '{print $1}')"
     else
-        lsshm_warn "Aucun outil SHA-256 : vérification ignorée."
-        return 0
+        lsshm_error "Aucun outil SHA-256 (sha256sum/shasum) : vérification impossible (abandon)."
+        return 1
     fi
-    [ "$expected" = "$actual" ]
+    if [ "$expected" != "$actual" ]; then
+        lsshm_error "Empreinte SHA-256 incorrecte."
+        lsshm_error "  attendu : $expected"
+        lsshm_error "  obtenu  : $actual"
+        return 1
+    fi
+    lsshm_ok "Empreinte SHA-256 vérifiée."
+    return 0
 }
 
 lsshm_update_rollback() {
