@@ -453,7 +453,7 @@ function Show-LsshmAccessList {
         $tmp = [System.IO.Path]::GetTempFileName()
         try {
             Set-Content -LiteralPath $tmp -Value $line -Encoding ascii
-            $fp = & ssh-keygen -lf $tmp 2>$null
+            $fp = Get-LsshmKeyFingerprint -PubPath $tmp
             Write-Host ("{0}. {1}" -f $i, $fp)
         } finally {
             Remove-Item -LiteralPath $tmp -Force -ErrorAction SilentlyContinue
@@ -512,15 +512,40 @@ function Repair-LsshmAccessPermissions {
 # Cles locales
 # =============================================================================
 
+function Get-LsshmPubPath {
+    param([Parameter(Mandatory)][string]$PrivatePath)
+    return ($PrivatePath + '.pub')
+}
+
+function Get-LsshmKeyFingerprint {
+    param([Parameter(Mandatory)][string]$PubPath)
+    if (-not (Test-Path -LiteralPath $PubPath)) { return 'inconnue' }
+    # Avoid terminating on native stderr when $ErrorActionPreference is Stop.
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $out = & ssh-keygen -lf $PubPath 2>$null
+        if ($LASTEXITCODE -eq 0 -and $out) { return [string]$out }
+        return 'inconnue'
+    } catch {
+        return 'inconnue'
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
+
 function Get-LsshmKeyPairs {
     $list = [System.Collections.Generic.List[string]]::new()
     if (-not (Test-Path -LiteralPath $script:LSSHM_SSH_DIR)) { return @() }
     Get-ChildItem -LiteralPath $script:LSSHM_SSH_DIR -Filter '*.pub' -File -ErrorAction SilentlyContinue |
         Sort-Object Name |
         ForEach-Object {
-            $list.Add(($_.FullName -replace '\.pub$', ''))
+            $base = $_.FullName
+            if ($base.EndsWith('.pub')) {
+                $list.Add($base.Substring(0, $base.Length - 4))
+            }
         }
-    return , $list.ToArray()
+    return @($list.ToArray())
 }
 
 function Show-LsshmKeysList {
@@ -532,9 +557,9 @@ function Show-LsshmKeysList {
         return $false
     }
     for ($i = 0; $i -lt $keys.Count; $i++) {
-        $priv = $keys[$i]
-        $pub = "$priv.pub"
-        $fp = & ssh-keygen -lf $pub 2>$null
+        $priv = [string]$keys[$i]
+        $pub = Get-LsshmPubPath -PrivatePath $priv
+        $fp = Get-LsshmKeyFingerprint -PubPath $pub
         Write-Host ("{0}. {1}" -f ($i + 1), (Split-Path $priv -Leaf))
         Write-Host ("   Publique : {0}" -f $pub)
         Write-Host ("   Privee   : {0}" -f $(if (Test-Path -LiteralPath $priv) { "$priv (presente)" } else { 'absente' }))
@@ -552,12 +577,13 @@ function Select-LsshmKey {
 
     if ($GivenPath) {
         $path = $GivenPath
-        if ($path -like '*.pub') { $path = $path -replace '\.pub$', '' }
+        if ($path -like '*.pub') { $path = $path.Substring(0, $path.Length - 4) }
+        $pub = Get-LsshmPubPath -PrivatePath $path
         if ($RequirePrivate -and -not (Test-Path -LiteralPath $path)) {
             Write-LsshmError "Cle privee introuvable : $path"
             return $null
         }
-        if (-not (Test-Path -LiteralPath $path) -and -not (Test-Path -LiteralPath "$path.pub")) {
+        if (-not (Test-Path -LiteralPath $path) -and -not (Test-Path -LiteralPath $pub)) {
             Write-LsshmError "Cle introuvable : $GivenPath"
             return $null
         }
@@ -572,8 +598,9 @@ function Select-LsshmKey {
         return $null
     }
 
-    if ((Test-Path -LiteralPath $choice) -or (Test-Path -LiteralPath "$choice.pub")) {
-        if ($choice -like '*.pub') { $choice = $choice -replace '\.pub$', '' }
+    $choicePub = Get-LsshmPubPath -PrivatePath $choice
+    if ((Test-Path -LiteralPath $choice) -or (Test-Path -LiteralPath $choicePub)) {
+        if ($choice -like '*.pub') { $choice = $choice.Substring(0, $choice.Length - 4) }
         return $choice
     }
 
@@ -587,7 +614,7 @@ function Select-LsshmKey {
         Write-LsshmError ("Numero hors plage (1-{0})." -f $keys.Count)
         return $null
     }
-    $path = $keys[$n - 1]
+    $path = [string]$keys[$n - 1]
     if ($RequirePrivate -and -not (Test-Path -LiteralPath $path)) {
         Write-LsshmError ("Cle privee absente pour {0}." -f (Split-Path $path -Leaf))
         return $null
@@ -611,7 +638,7 @@ function New-LsshmKey {
     & ssh-keygen @args
     if ($LASTEXITCODE -eq 0) {
         Write-LsshmOk "Cle generee : $path"
-        Get-Content -LiteralPath "$path.pub"
+        Get-Content -LiteralPath (Get-LsshmPubPath -PrivatePath $path)
     } else {
         Write-LsshmError 'Echec de la generation.'
     }
@@ -621,20 +648,27 @@ function Show-LsshmKeyInspect {
     param([string]$GivenPath = '')
     $path = Select-LsshmKey -Prompt 'Cle a inspecter' -GivenPath $GivenPath
     if (-not $path) { return }
-    $pub = if (Test-Path -LiteralPath "$path.pub") { "$path.pub" } else { $path }
+    $pub = Get-LsshmPubPath -PrivatePath $path
+    if (-not (Test-Path -LiteralPath $pub)) { $pub = $path }
     if (-not (Test-Path -LiteralPath $pub)) {
         Write-LsshmError "Fichier introuvable : $pub"
         return
     }
-    & ssh-keygen -lf $pub
-    & ssh-keygen -lvf $pub
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & ssh-keygen -lf $pub
+        & ssh-keygen -lvf $pub
+    } finally {
+        $ErrorActionPreference = $prev
+    }
 }
 
 function Show-LsshmKeyExport {
     param([string]$GivenPath = '')
     $path = Select-LsshmKey -Prompt 'Cle a exporter' -GivenPath $GivenPath
     if (-not $path) { return }
-    $pub = "$path.pub"
+    $pub = Get-LsshmPubPath -PrivatePath $path
     if (-not (Test-Path -LiteralPath $pub)) {
         Write-LsshmError "Cle publique introuvable : $pub"
         return
@@ -648,7 +682,7 @@ function Remove-LsshmKey {
     $path = Select-LsshmKey -Prompt 'Cle a supprimer' -GivenPath $GivenPath
     if (-not $path) { return }
     $priv = $path
-    $pub = "$path.pub"
+    $pub = Get-LsshmPubPath -PrivatePath $path
     Write-LsshmWarn 'Suppression de la paire de cles :'
     if (Test-Path -LiteralPath $priv) { Write-Host "  $priv" }
     if (Test-Path -LiteralPath $pub) { Write-Host "  $pub" }
