@@ -53,12 +53,14 @@ lsshm_ui_show() {
 
 lsshm_ui_run() {
     local title="$1"; shift
+    # Always return success: a cancelled/failed action must not exit the menu (set -e).
     if lsshm_uses_dialog_ui; then
-        lsshm_ui_show "$title" "$@"
+        lsshm_ui_show "$title" "$@" || true
     else
-        "$@"
+        "$@" || true
         lsshm_pause
     fi
+    return 0
 }
 
 # Offer to install dialog when missing.
@@ -136,14 +138,14 @@ lsshm_dialog_menu_loop() {
 
         [ "$ret" -ne 0 ] && break
         case "$choice" in
-            1) lsshm_cli_server_menu ;;
-            2) lsshm_cli_access_menu ;;
-            3) lsshm_cli_keys_menu ;;
-            4) lsshm_cli_hosts_menu ;;
-            5) lsshm_logs_menu ;;
+            1) lsshm_menu_try lsshm_cli_server_menu ;;
+            2) lsshm_menu_try lsshm_cli_access_menu ;;
+            3) lsshm_menu_try lsshm_cli_keys_menu ;;
+            4) lsshm_menu_try lsshm_cli_hosts_menu ;;
+            5) lsshm_menu_try lsshm_logs_menu ;;
             6) lsshm_ui_run "Audit de sécurité" lsshm_audit ;;
-            7) lsshm_backup_menu ;;
-            8) lsshm_settings_menu ;;
+            7) lsshm_menu_try lsshm_backup_menu ;;
+            8) lsshm_menu_try lsshm_settings_menu ;;
             9) break ;;
         esac
     done

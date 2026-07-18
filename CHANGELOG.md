@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `install` / `uninstall` / `update` / `version` / `help` / `server` no longer
   prompt for a target user (personal SSH context is irrelevant there).
 - Root target-user picker is resilient to `set -e` failures inside `$(prompt)`.
+- Menu actions that fail or are cancelled no longer exit the whole script
+  (`set -e`); the menu loop continues.
 
 ## [0.3.1] - 2026-07-18
 

@@ -54,7 +54,7 @@ lsshm_logs_menu() {
   4. Journaux du service SSH
   5. Retour
 EOF
-            choice="$(lsshm_prompt 'Choix' '5')"
+            choice="$(lsshm_prompt 'Choix' '5' || true)"
         fi
         case "$choice" in
             1) lsshm_ui_run "Sessions actives" lsshm_logs_sessions ;;

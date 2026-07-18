@@ -111,7 +111,7 @@ lsshm_backup_menu() {
   4. Restaurer une configuration serveur
   5. Retour
 EOF
-            choice="$(lsshm_prompt 'Choix' '5')"
+            choice="$(lsshm_prompt 'Choix' '5' || true)"
         fi
         case "$choice" in
             1) lsshm_ui_run "Sauvegarde serveur SSH" lsshm_backup_server_config ;;
@@ -119,12 +119,15 @@ EOF
             3) lsshm_ui_run "Sauvegardes disponibles" lsshm_backup_list ;;
             4)
                 if lsshm_uses_dialog_ui; then
-                    lsshm_ui_show "Sauvegardes" lsshm_backup_list
+                    lsshm_menu_try lsshm_ui_show "Sauvegardes" lsshm_backup_list
                 else
-                    lsshm_backup_list
+                    lsshm_menu_try lsshm_backup_list
                 fi
-                local a; a="$(lsshm_prompt 'Nom de l’archive à restaurer' '')"
-                [ -n "$a" ] && lsshm_backup_restore_server "$a"
+                local a=""
+                a="$(lsshm_prompt 'Nom de l’archive à restaurer' '' || true)"
+                if [ -n "$a" ]; then
+                    lsshm_menu_try lsshm_backup_restore_server "$a"
+                fi
                 lsshm_uses_dialog_ui || lsshm_pause
                 ;;
             5|q|Q) break ;;

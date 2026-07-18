@@ -214,6 +214,21 @@ lsshm_pause() {
     lsshm_read_line _ "Appuyez sur Entrée pour continuer... " || true
 }
 
+# Run a command from a menu without aborting the loop under set -e.
+lsshm_menu_try() {
+    "$@" || true
+    return 0
+}
+
+# Interactive menu action: run (ignore failure/cancel), then pause in CLI mode.
+lsshm_menu_action() {
+    "$@" || true
+    if ! lsshm_uses_dialog_ui; then
+        lsshm_pause
+    fi
+    return 0
+}
+
 # -----------------------------------------------------------------------------
 # Temporary files (tracked and cleaned on exit)
 # -----------------------------------------------------------------------------
