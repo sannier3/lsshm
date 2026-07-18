@@ -278,14 +278,19 @@ lsshm_main() {
     lsshm_bootstrap
     # Re-init colors in case --no-color was set after init.
     lsshm_init_colors
-    lsshm_resolve_target_user
-
-    if [ "$force_ui" = "1" ]; then
-        lsshm_dialog_main
-        return
-    fi
 
     local cmd="${args[0]:-menu}"
+    if [ "$force_ui" = "1" ]; then
+        cmd="ui"
+    fi
+
+    # Target-user prompt is only for personal SSH file management — never for
+    # install/uninstall/update/help/version (or server-only ops).
+    case "$cmd" in
+        install|uninstall|update|version|help|--help|-h|server) ;;
+        *) lsshm_resolve_target_user ;;
+    esac
+
     case "$cmd" in
         menu)
             lsshm_update_check || true

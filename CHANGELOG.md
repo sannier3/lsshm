@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `install` / `uninstall` / `update` / `version` / `help` / `server` no longer
+  prompt for a target user (personal SSH context is irrelevant there).
+- Root target-user picker is resilient to `set -e` failures inside `$(prompt)`.
+
 ## [0.3.1] - 2026-07-18
 
 ### Fixed

@@ -187,16 +187,18 @@ lsshm_chown_user() {
 lsshm_pick_target_user() {
     local default="${1:-$LSSHM_CALLING_USER}"
     local -a names=()
-    local name uid home i=0
+    local name uid home i=0 user_list="" choice=""
+
+    user_list="$(lsshm_users_list 2>/dev/null)" || user_list=""
 
     printf '\nUtilisateurs locaux disponibles :\n' >&2
-    while IFS=: read -r name uid home; do
+    while IFS=: read -r name uid home || [ -n "$name" ]; do
         [ -n "$name" ] || continue
         i=$((i + 1))
         names+=("$name")
         printf '  %d. %-16s uid=%-6s %s\n' "$i" "$name" "$uid" "$home" >&2
     done <<EOF
-$(lsshm_users_list)
+$user_list
 EOF
 
     if [ "$i" -eq 0 ]; then
@@ -204,8 +206,8 @@ EOF
         return 1
     fi
 
-    local choice
-    choice="$(lsshm_prompt "Utilisateur à administrer (numéro ou nom)" "$default")"
+    # || true: under set -e, a failed prompt inside $(...) must not abort LSSHM.
+    choice="$(lsshm_prompt "Utilisateur à administrer (numéro ou nom)" "$default" || true)"
     [ -n "$choice" ] || return 1
 
     if [[ "$choice" =~ ^[0-9]+$ ]]; then
@@ -248,7 +250,8 @@ lsshm_resolve_target_user() {
             printf '  1. %s (recommandé)\n' "$SUDO_USER"
             printf '  2. root\n'
             printf '  3. Choisir un autre utilisateur\n'
-            local choice; choice="$(lsshm_prompt 'Choix' '1')"
+            local choice=""
+            choice="$(lsshm_prompt 'Choix' '1' || true)"
             case "$choice" in
                 2) lsshm_set_target_user "root" || LSSHM_CALLING_USER="root" ;;
                 3) lsshm_pick_target_user "$SUDO_USER" || LSSHM_CALLING_USER="$SUDO_USER" ;;
@@ -261,7 +264,8 @@ lsshm_resolve_target_user() {
             printf 'Les fichiers SSH personnels de quel utilisateur faut-il gérer ?\n'
             printf '  1. root\n'
             printf '  2. Choisir un autre utilisateur\n'
-            local choice; choice="$(lsshm_prompt 'Choix' '2')"
+            local choice=""
+            choice="$(lsshm_prompt 'Choix' '2' || true)"
             case "$choice" in
                 1) lsshm_set_target_user "root" || true ;;
                 *) lsshm_pick_target_user "root" || lsshm_set_target_user "root" || true ;;
