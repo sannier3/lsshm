@@ -42,7 +42,7 @@ Usage :
   lsshm help                Afficher cette aide
 
 Options globales :
-  --user NOM                Cibler l'utilisateur NOM
+  --user NOM                Administrer les fichiers SSH de NOM (accès, clés, hosts)
   --ui                      Forcer l'interface dialog
   -y, --yes                 Répondre oui automatiquement (non interactif)
   --no-color                Désactiver la couleur

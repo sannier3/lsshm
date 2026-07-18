@@ -52,7 +52,12 @@ lsshm_server_reload() {
         lsshm_error "Configuration invalide : rechargement annulé."
         return 1
     fi
-    lsshm_server_action reload && lsshm_ok "Service SSH rechargé."
+    if lsshm_server_action reload; then
+        lsshm_server_config_invalidate_cache
+        lsshm_ok "Service SSH rechargé."
+    else
+        return 1
+    fi
 }
 
 # --- status ------------------------------------------------------------------

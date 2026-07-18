@@ -7,7 +7,7 @@ LSSHM is a **local** OpenSSH management tool: SSH server, incoming access, outgo
 Default dependency-free CLI and optional `dialog` interface.
 
 > [!WARNING]
-> LSSHM is under active development (v0.2.0). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
+> LSSHM is under active development (v0.3.0). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
 
 ## Scope
 
@@ -136,7 +136,19 @@ lsshm host edit|delete|test|connect|copy-key|revoke-key NAME
 
 Global options: `--user NAME`, `-y`, `--no-color`, `-h`.
 
-## Features (v0.2.0)
+### Administer another user (root / Debian)
+
+As **root** (console, LXC, or `sudo`), LSSHM asks which user to manage for personal SSH files (`~/.ssh`: keys, `authorized_keys`, `config`). The system SSH server is still managed as root.
+
+```bash
+sudo lsshm
+lsshm --user jb access list
+lsshm --user jb key generate
+```
+
+You can also switch the target user from **Access**, **Keys**, or **Settings**.
+
+## Features (v0.3.0)
 
 - Debian / derivatives, systemd, and LXC detection
 - OpenSSH Server installation and service management

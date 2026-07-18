@@ -55,9 +55,7 @@ lsshm_hosts_exists() {
 
 lsshm_hosts_add() {
     local file; file="$(lsshm_hosts_file)"
-    local dir; dir="$(dirname "$file")"
-    mkdir -p "$dir" 2>/dev/null || true
-    chmod 700 "$dir" 2>/dev/null || true
+    lsshm_ensure_user_ssh_dir "$LSSHM_CALLING_USER"
 
     local name hostname user port identity proxyjump
     name="$(lsshm_prompt 'Nom (alias) de la machine' 'proxmox1')"
@@ -82,6 +80,7 @@ lsshm_hosts_add() {
         [ -n "$proxyjump" ] && printf '    ProxyJump %s\n' "$proxyjump"
     } >>"$file"
     chmod 600 "$file" 2>/dev/null || true
+    lsshm_chown_user "$LSSHM_CALLING_USER" "$file"
     lsshm_ok "Hôte '$name' ajouté à $file"
 }
 

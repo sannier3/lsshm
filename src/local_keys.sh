@@ -117,7 +117,7 @@ lsshm_keys_pick() {
 # Generate a new key pair. Default type ED25519.
 lsshm_keys_generate() {
     local dir; dir="$(lsshm_keys_dir)"
-    mkdir -p "$dir" 2>/dev/null || lsshm_run_privileged mkdir -p "$dir"
+    lsshm_ensure_user_ssh_dir "$LSSHM_CALLING_USER"
 
     local type; type="$(lsshm_prompt 'Type de clé (ed25519/rsa)' 'ed25519')"
     case "$type" in
@@ -143,7 +143,10 @@ lsshm_keys_generate() {
     lsshm_info "ssh-keygen ${args[*]}"
     lsshm_info "Une phrase secrète est fortement recommandée."
     if ssh-keygen "${args[@]}"; then
-        lsshm_ok "Clé générée : $path"
+        chmod 600 "$path" 2>/dev/null || true
+        chmod 644 "$path.pub" 2>/dev/null || true
+        lsshm_chown_user "$LSSHM_CALLING_USER" "$path" "$path.pub"
+        lsshm_ok "Clé générée : $path (utilisateur $LSSHM_CALLING_USER)"
         lsshm_info "Clé publique :"
         cat "$path.pub"
     else

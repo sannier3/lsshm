@@ -27,18 +27,53 @@ lsshm_server_config_test() {
     return 1
 }
 
-# sshd -T : dump the effective configuration.
+# Invalidate the cached sshd -T dump (call after config changes).
+lsshm_server_config_invalidate_cache() {
+    LSSHM_SSHD_T_CACHE=""
+    LSSHM_SSHD_T_CACHED=0
+}
+
+# sshd -T : dump the effective configuration (cached).
+# Never prompts for a sudo password: uses an existing ticket (sudo -n) or fails
+# so the status panel / menu can open without asking for admin credentials.
+# Pass "refresh" to force a new privileged dump (may prompt once via sudo -v).
 lsshm_server_config_dump() {
+    local mode="${1:-}"
     [ -n "${LSSHM_SSHD_BIN:-}" ] || return 1
-    lsshm_run_privileged "$LSSHM_SSHD_BIN" -T 2>/dev/null
+
+    if [ "$mode" = "refresh" ]; then
+        lsshm_server_config_invalidate_cache
+        if [ "$LSSHM_IS_ROOT" != "1" ] && [ -n "${LSSHM_SUDO:-}" ]; then
+            lsshm_sudo_ensure || return 1
+        fi
+    fi
+
+    if [ "${LSSHM_SSHD_T_CACHED:-0}" = "1" ]; then
+        printf '%s\n' "$LSSHM_SSHD_T_CACHE"
+        return 0
+    fi
+
+    local dump=""
+    if [ "$LSSHM_IS_ROOT" = "1" ]; then
+        dump="$("$LSSHM_SSHD_BIN" -T 2>/dev/null)" || return 1
+    elif [ -n "${LSSHM_SUDO:-}" ]; then
+        # Read-only: never trigger a password prompt here.
+        dump="$(sudo -n "$LSSHM_SSHD_BIN" -T 2>/dev/null)" || return 1
+    else
+        dump="$("$LSSHM_SSHD_BIN" -T 2>/dev/null)" || return 1
+    fi
+
+    LSSHM_SSHD_T_CACHE="$dump"
+    LSSHM_SSHD_T_CACHED=1
+    printf '%s\n' "$dump"
 }
 
 # Effective value of a directive (lowercase key). Falls back to file parsing
-# when sshd -T is unavailable.
+# when sshd -T is unavailable (e.g. no sudo credentials yet).
 lsshm_server_config_effective_value() {
     local key; key="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
     local dump val
-    dump="$(lsshm_server_config_dump)"
+    dump="$(lsshm_server_config_dump)" || dump=""
     if [ -n "$dump" ]; then
         val="$(printf '%s\n' "$dump" | awk -v k="$key" 'tolower($1)==k {sub($1 FS,""); print; exit}')"
         [ -n "$val" ] && { printf '%s' "$val"; return 0; }
@@ -127,10 +162,13 @@ lsshm_managed_ensure_include() {
 # Read current value from the managed file only.
 lsshm_managed_get() {
     local key; key="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
-    [ -r "$LSSHM_MANAGED_CONF" ] || return 1
-    lsshm_run_privileged awk -v k="$key" '
-        { n=split($0,a," "); if (n>=2 && tolower(a[1])==k){ $1=""; sub(/^ /,""); print; exit } }' \
-        "$LSSHM_MANAGED_CONF" 2>/dev/null
+    local awk_prog='{ n=split($0,a," "); if (n>=2 && tolower(a[1])==k){ $1=""; sub(/^ /,""); print; exit } }'
+    if [ -r "$LSSHM_MANAGED_CONF" ]; then
+        awk -v k="$key" "$awk_prog" "$LSSHM_MANAGED_CONF" 2>/dev/null
+        return 0
+    fi
+    [ -e "$LSSHM_MANAGED_CONF" ] || return 1
+    lsshm_run_privileged awk -v k="$key" "$awk_prog" "$LSSHM_MANAGED_CONF" 2>/dev/null
 }
 
 # Upsert a directive into the managed drop-in file and validate.
@@ -149,8 +187,10 @@ lsshm_managed_set() {
     fi
 
     local tmp; tmp="$(lsshm_mktemp)"
-    # Start from existing managed file or a fresh header.
-    if lsshm_run_privileged test -f "$LSSHM_MANAGED_CONF"; then
+    # Start from existing managed file or a fresh header (one sudo for the read).
+    if [ -r "$LSSHM_MANAGED_CONF" ]; then
+        cat "$LSSHM_MANAGED_CONF" >"$tmp" 2>/dev/null || true
+    elif [ -e "$LSSHM_MANAGED_CONF" ]; then
         lsshm_run_privileged cat "$LSSHM_MANAGED_CONF" >"$tmp" 2>/dev/null || true
     fi
     if [ ! -s "$tmp" ]; then
@@ -167,10 +207,12 @@ lsshm_managed_set() {
     # Install atomically with correct permissions, then validate.
     lsshm_backup_file "$LSSHM_MANAGED_CONF" "managed-conf" >/dev/null 2>&1 || true
     lsshm_run_privileged install -m 0644 -o root -g root "$tmp2" "$LSSHM_MANAGED_CONF"
+    lsshm_server_config_invalidate_cache
 
     if ! lsshm_server_config_test; then
         lsshm_error "Nouvelle configuration invalide : annulation."
         lsshm_run_privileged install -m 0644 "$tmp" "$LSSHM_MANAGED_CONF" 2>/dev/null || true
+        lsshm_server_config_invalidate_cache
         return 1
     fi
     lsshm_ok "Directive appliquée : $key $value"
@@ -178,6 +220,8 @@ lsshm_managed_set() {
     # Confirm the effective runtime value matches the intended choice.
     local eff_key eff_val norm_eff norm_want
     eff_key="$(printf '%s' "$key" | tr '[:upper:]' '[:lower:]')"
+    # Prefer a fresh privileged dump when credentials are already warm.
+    lsshm_server_config_dump >/dev/null 2>&1 || true
     eff_val="$(lsshm_server_config_effective_value "$eff_key")"
     if [ -n "$eff_val" ]; then
         norm_eff="$(printf '%s' "$eff_val" | tr '[:upper:]' '[:lower:]')"
@@ -297,7 +341,9 @@ lsshm_set_allow_groups() {
 
 # Show the effective configuration (sshd -T) or a helpful message.
 lsshm_server_config_show() {
-    local dump; dump="$(lsshm_server_config_dump)"
+    local dump
+    # Explicit request: allow one sudo prompt to get the real effective dump.
+    dump="$(lsshm_server_config_dump refresh)" || dump="$(lsshm_server_config_dump)" || dump=""
     if [ -n "$dump" ]; then
         printf '%s\n' "$dump" | sort
     else

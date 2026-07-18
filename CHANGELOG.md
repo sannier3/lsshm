@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-18
+
+### Added
+
+- As root (direct login or sudo), interactive choice of which user's personal
+  SSH files to administer (`authorized_keys`, keys, `~/.ssh/config`).
+- Target-user picker in Access, Keys, and Settings menus; correct ownership
+  when generating keys or editing hosts for another user.
+
+### Fixed
+
+- Opening the menu as a normal user no longer asks for the sudo password
+  multiple times: `sshd -T` is cached, status reads fall back to config files,
+  and sudo is primed once per session when a privileged action is needed.
+
 ## [0.2.0] - 2026-07-18
 
 ### Added
@@ -68,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with temporary download, `bash -n` check, SHA-256 verification, atomic
   replacement, and previous-version retention.
 
-[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/sannier3/lsshm/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sannier3/lsshm/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sannier3/lsshm/releases/tag/v0.1.0

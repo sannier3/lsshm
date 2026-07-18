@@ -192,7 +192,7 @@ Utilisateur ciblé : $user"
 }
 
 lsshm_dialog_keys_menu() {
-    lsshm_ui_menu "Mes clés SSH" "Clés utilisées pour se connecter AILLEURS" \
+    lsshm_ui_menu "Clés SSH" "Utilisateur : $LSSHM_CALLING_USER — pour se connecter AILLEURS" \
         1 "Lister les paires de clés" \
         2 "Générer une nouvelle clé (ED25519)" \
         3 "Inspecter une clé" \
@@ -202,7 +202,8 @@ lsshm_dialog_keys_menu() {
         7 "ssh-agent : lister" \
         8 "ssh-agent : ajouter une clé" \
         9 "ssh-agent : retirer une clé" \
-        10 "Retour"
+        10 "Changer d'utilisateur ciblé" \
+        11 "Retour"
 }
 
 lsshm_dialog_hosts_menu() {
@@ -224,7 +225,8 @@ lsshm_dialog_hosts_menu() {
 lsshm_dialog_settings_menu() {
     lsshm_config_load
     local body
-    body="Vérification des mises à jour : $LSSHM_CFG_UPDATE_CHECK
+    body="Utilisateur administré : $LSSHM_CALLING_USER
+Vérification des mises à jour : $LSSHM_CFG_UPDATE_CHECK
 Canal : $LSSHM_CFG_UPDATE_CHANNEL
 Fichier : $LSSHM_CONFIG_FILE"
     lsshm_ui_menu "Paramètres de LSSHM" "$body" \
@@ -233,7 +235,8 @@ Fichier : $LSSHM_CONFIG_FILE"
         3 "Vérification : jamais" \
         4 "Vérifier les mises à jour maintenant" \
         5 "Afficher le diagnostic (doctor)" \
-        6 "Retour"
+        6 "Changer d'utilisateur administré" \
+        7 "Retour"
 }
 
 lsshm_dialog_logs_menu() {
