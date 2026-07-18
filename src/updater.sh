@@ -186,7 +186,14 @@ lsshm_update_verify_checksum() {
         return 1
     fi
     local expected actual
-    expected="$(awk '/[[:space:]]lsshm\.sh$/{print $1; exit}' "$sums")"
+    # Accept both text ("hash  lsshm.sh") and binary ("hash *lsshm.sh") formats.
+    expected="$(awk '
+        {
+            f = $2
+            sub(/^\*/, "", f)
+            if (f == "lsshm.sh") { print $1; exit }
+        }
+    ' "$sums")"
     if [ -z "$expected" ]; then
         lsshm_error "Empreinte lsshm.sh absente de SHA256SUMS (abandon)."
         return 1

@@ -39,7 +39,8 @@ download "$REPO_RAW/SHA256SUMS" "$sums" || {
     echo "install.sh: SHA256SUMS unavailable; refusing to continue." >&2
     exit 1
 }
-expected="$(awk '/[[:space:]]lsshm\.sh$/{print $1; exit}' "$sums")"
+# Accept both text ("hash  lsshm.sh") and binary ("hash *lsshm.sh") formats.
+expected="$(awk '{ f=$2; sub(/^\*/,"",f); if (f=="lsshm.sh") { print $1; exit } }' "$sums")"
 [ -n "$expected" ] || { echo "install.sh: lsshm.sh hash missing from SHA256SUMS." >&2; exit 1; }
 if command -v sha256sum >/dev/null 2>&1; then
     actual="$(sha256sum "$tmp" | awk '{print $1}')"

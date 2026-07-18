@@ -84,10 +84,11 @@ if ! bash -n "$OUT_FILE"; then
 fi
 
 # Regenerate SHA256SUMS for the distributable artifacts.
+# Normalize to text mode ("hash  file") so installers never choke on "hash *file".
 (
     cd "$ROOT_DIR"
     if command -v sha256sum >/dev/null 2>&1; then
-        sha256sum lsshm.sh VERSION >SHA256SUMS
+        sha256sum lsshm.sh VERSION | sed 's/ \*/  /' >SHA256SUMS
     elif command -v shasum >/dev/null 2>&1; then
         shasum -a 256 lsshm.sh VERSION >SHA256SUMS
     fi

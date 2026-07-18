@@ -74,3 +74,13 @@ assert_false "lsshm_update_verify_checksum \"$_tmpf\" 2>/dev/null" \
     "checksum verify fails when SHA256SUMS unavailable"
 rm -f "$_tmpf"
 eval "$_save_download"
+
+# Parser accepts both "hash  lsshm.sh" and "hash *lsshm.sh".
+_sumstmp="$(mktemp)"
+printf 'abc123 *lsshm.sh\ndef456  VERSION\n' >"$_sumstmp"
+_parsed="$(awk '{ f=$2; sub(/^\*/,"",f); if (f=="lsshm.sh") { print $1; exit } }' "$_sumstmp")"
+assert_eq "abc123" "$_parsed" "SHA256SUMS parser accepts binary *filename format"
+printf 'abc123  lsshm.sh\ndef456  VERSION\n' >"$_sumstmp"
+_parsed="$(awk '{ f=$2; sub(/^\*/,"",f); if (f=="lsshm.sh") { print $1; exit } }' "$_sumstmp")"
+assert_eq "abc123" "$_parsed" "SHA256SUMS parser accepts text filename format"
+rm -f "$_sumstmp"
