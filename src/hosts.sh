@@ -193,10 +193,10 @@ lsshm_hosts_revoke_key() {
     [ -n "$name" ] || { lsshm_info "Annulé."; return 0; }
     local identity; identity="$(lsshm_hosts_get_field "$name" IdentityFile)"
     identity="${identity:-$(lsshm_keys_dir)/id_ed25519}"
-    # Expand ~ in IdentityFile if present.
-    case "$identity" in
-        "~/"*) identity="$HOME/${identity#~/}" ;;
-    esac
+    # Expand a leading ~/ in IdentityFile (literal prefix, not shell tilde expansion).
+    if [ "${identity#~/}" != "$identity" ]; then
+        identity="$HOME/${identity#~/}"
+    fi
     local pub="$identity.pub"
     [ -f "$pub" ] || { lsshm_error "Clé publique introuvable : $pub"; return 1; }
     local keytext; keytext="$(awk '{print $2}' "$pub")"
