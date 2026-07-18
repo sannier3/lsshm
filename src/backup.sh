@@ -41,8 +41,13 @@ lsshm_backup_server_config() {
         return 1
     fi
     if lsshm_run_privileged tar -czf "$archive" -T "$tmp" 2>/dev/null; then
-        lsshm_ok "Sauvegarde créée : $archive"
-        printf '%s' "$archive"
+        # When stdout is captured (rollback), emit only the path.
+        # Interactively, show a human message instead.
+        if [ -t 1 ]; then
+            lsshm_ok "Sauvegarde créée : $archive"
+        else
+            printf '%s' "$archive"
+        fi
         return 0
     fi
     lsshm_error "Échec de la sauvegarde de la configuration serveur."

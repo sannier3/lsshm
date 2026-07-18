@@ -41,7 +41,8 @@ lsshm_prompt_tty() {
 # Build a self-contained restore script that reverts to a backup archive.
 lsshm_rollback_build_script() {
     local archive="$1" confirm_flag="$2" delay="$3"
-    local script; script="$(lsshm_mktemp)"
+    # persist: must not be deleted by the EXIT cleanup trap.
+    local script; script="$(lsshm_mktemp persist)"
     cat >"$script" <<EOF
 #!/bin/sh
 # LSSHM automatic rollback helper

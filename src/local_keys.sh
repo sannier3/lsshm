@@ -11,26 +11,29 @@ lsshm_keys_dir() {
 }
 
 # Fill LSSHM_KEY_PATHS with private-key paths (one per .pub found).
-# Returns the count via stdout when used as: count="$(lsshm_keys_collect)"
+# Must be called in the current shell (not via $(...)): arrays do not survive
+# command substitution. Sets LSSHM_KEY_COUNT and returns 0.
 lsshm_keys_collect() {
     LSSHM_KEY_PATHS=()
+    LSSHM_KEY_COUNT=0
     local dir; dir="$(lsshm_keys_dir)"
-    [ -d "$dir" ] || { printf '0'; return 0; }
+    [ -d "$dir" ] || return 0
     local pub priv
+    # nullglob-safe: skip the literal "*.pub" when the directory is empty.
     for pub in "$dir"/*.pub; do
         [ -e "$pub" ] || continue
         priv="${pub%.pub}"
         LSSHM_KEY_PATHS+=("$priv")
     done
-    printf '%s' "${#LSSHM_KEY_PATHS[@]}"
+    LSSHM_KEY_COUNT="${#LSSHM_KEY_PATHS[@]}"
 }
 
 # Print a numbered list of key pairs (same numbering as pick).
 lsshm_keys_print_numbered() {
     local dir; dir="$(lsshm_keys_dir)"
     printf 'Répertoire : %s\n\n' "$dir"
-    local count; count="$(lsshm_keys_collect)"
-    if [ "$count" = "0" ]; then
+    lsshm_keys_collect
+    if [ "${LSSHM_KEY_COUNT:-0}" = "0" ]; then
         lsshm_info "Aucune paire de clés détectée."
         return 1
     fi

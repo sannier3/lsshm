@@ -102,6 +102,7 @@ lsshm_hosts_delete() {
         !inblk { print }
     ' "$file" >"$tmp"
     install -m 0600 "$tmp" "$file"
+    lsshm_chown_user "$LSSHM_CALLING_USER" "$file"
     lsshm_ok "Hôte '$name' supprimé."
 }
 
@@ -113,8 +114,17 @@ lsshm_hosts_edit() {
     lsshm_hosts_show "$name"
     lsshm_warn "L'édition remplace le bloc complet."
     lsshm_confirm "Continuer ?" no || return 0
+    local file snap
+    file="$(lsshm_hosts_file)"
+    snap="$(lsshm_mktemp)"
+    cp -a "$file" "$snap" 2>/dev/null || { lsshm_error "Impossible de sauvegarder $file."; return 1; }
     lsshm_hosts_delete "$name"
-    lsshm_hosts_add
+    if ! lsshm_hosts_add; then
+        install -m 0600 "$snap" "$file"
+        lsshm_chown_user "$LSSHM_CALLING_USER" "$file"
+        lsshm_warn "Édition annulée : l'hôte '$name' a été restauré."
+        return 1
+    fi
 }
 
 lsshm_hosts_show() {
@@ -179,7 +189,7 @@ lsshm_hosts_copy_key() {
     [ -n "$name" ] || name="$(lsshm_prompt 'Nom de l’hôte' '')"
     lsshm_have ssh-copy-id || { lsshm_error "ssh-copy-id introuvable."; return 1; }
     local identity; identity="$(lsshm_hosts_get_field "$name" IdentityFile)"
-    identity="${identity:-$(lsshm_keys_dir)/id_ed25519}"
+    identity="$(lsshm_expand_user_path "${identity:-$(lsshm_keys_dir)/id_ed25519}")"
     local pub="$identity.pub"
     [ -f "$pub" ] || { lsshm_error "Clé publique introuvable : $pub"; return 1; }
     lsshm_info "Copie de $pub vers $name..."
@@ -191,11 +201,7 @@ lsshm_hosts_revoke_key() {
     [ -n "$name" ] || name="$(lsshm_prompt 'Nom de l’hôte' '')"
     [ -n "$name" ] || { lsshm_info "Annulé."; return 0; }
     local identity; identity="$(lsshm_hosts_get_field "$name" IdentityFile)"
-    identity="${identity:-$(lsshm_keys_dir)/id_ed25519}"
-    # Expand a leading ~/ in IdentityFile (literal prefix, not shell tilde expansion).
-    if [ "${identity#~/}" != "$identity" ]; then
-        identity="$HOME/${identity#~/}"
-    fi
+    identity="$(lsshm_expand_user_path "${identity:-$(lsshm_keys_dir)/id_ed25519}")"
     local pub="$identity.pub"
     [ -f "$pub" ] || { lsshm_error "Clé publique introuvable : $pub"; return 1; }
     local keytext; keytext="$(awk '{print $2}' "$pub")"
@@ -209,12 +215,14 @@ lsshm_hosts_revoke_key() {
     esac
     lsshm_warn "Retrait de la clé sur $name (nécessite un accès autorisé)."
     lsshm_confirm "Continuer ?" no || return 0
-    # Exact field match via awk (not grep regex). Key passed as env, not shell-interpolated.
-    if KEYBLOB="$keytext" ssh "$name" 'bash -s' <<'REMOTE'
+    # Pass the key body as argv ($1): SSH does not forward local env vars.
+    # base64-only keytext is safe to embed via printf %q.
+    if ssh "$name" "bash -s -- $(printf '%q' "$keytext")" <<'REMOTE'
 set -euo pipefail
+KEYBLOB="$1"
 ak="${HOME}/.ssh/authorized_keys"
 [ -f "$ak" ] || { echo "authorized_keys introuvable" >&2; exit 1; }
-tmp="$(mktemp "${HOME}/.ssh/authorized_keys.lsshm.XXXXXX")"
+tmp="$(mktemp "${TMPDIR:-/tmp}/lsshm-ak.XXXXXX")"
 awk -v k="$KEYBLOB" '
 {
   keep=1

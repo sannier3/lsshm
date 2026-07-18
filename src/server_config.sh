@@ -27,10 +27,16 @@ lsshm_server_config_test() {
     return 1
 }
 
+lsshm_server_config_cache_file() {
+    printf '%s/sshd-T.cache' "${LSSHM_CACHE_DIR:-${TMPDIR:-/tmp}}"
+}
+
 # Invalidate the cached sshd -T dump (call after config changes).
+# File-backed so the cache survives dump="$(lsshm_server_config_dump)" subshells.
 lsshm_server_config_invalidate_cache() {
     LSSHM_SSHD_T_CACHE=""
     LSSHM_SSHD_T_CACHED=0
+    rm -f "$(lsshm_server_config_cache_file)" 2>/dev/null || true
 }
 
 # sshd -T : dump the effective configuration (cached).
@@ -38,8 +44,9 @@ lsshm_server_config_invalidate_cache() {
 # so the status panel / menu can open without asking for admin credentials.
 # Pass "refresh" to force a new privileged dump (may prompt once via sudo -v).
 lsshm_server_config_dump() {
-    local mode="${1:-}"
+    local mode="${1:-}" cache_file dump=""
     [ -n "${LSSHM_SSHD_BIN:-}" ] || return 1
+    cache_file="$(lsshm_server_config_cache_file)"
 
     if [ "$mode" = "refresh" ]; then
         lsshm_server_config_invalidate_cache
@@ -48,12 +55,15 @@ lsshm_server_config_dump() {
         fi
     fi
 
-    if [ "${LSSHM_SSHD_T_CACHED:-0}" = "1" ]; then
+    if [ -f "$cache_file" ]; then
+        cat "$cache_file"
+        return 0
+    fi
+    if [ "${LSSHM_SSHD_T_CACHED:-0}" = "1" ] && [ -n "${LSSHM_SSHD_T_CACHE:-}" ]; then
         printf '%s\n' "$LSSHM_SSHD_T_CACHE"
         return 0
     fi
 
-    local dump=""
     if [ "$LSSHM_IS_ROOT" = "1" ]; then
         dump="$("$LSSHM_SSHD_BIN" -T 2>/dev/null)" || return 1
     elif [ -n "${LSSHM_SUDO:-}" ]; then
@@ -65,6 +75,8 @@ lsshm_server_config_dump() {
 
     LSSHM_SSHD_T_CACHE="$dump"
     LSSHM_SSHD_T_CACHED=1
+    mkdir -p "$(dirname "$cache_file")" 2>/dev/null || true
+    printf '%s\n' "$dump" >"$cache_file" 2>/dev/null || true
     printf '%s\n' "$dump"
 }
 

@@ -73,7 +73,16 @@ lsshm_access_list() {
         bits="$(printf '%s' "$info" | awk '{print $1}')"
         fp="$(printf '%s' "$info" | awk '{print $2}')"
         type="$(printf '%s' "$info" | awk '{print $NF}' | tr -d '()')"
-        comment="$(printf '%s' "$_ak_keyline" | awk '{ for(i=3;i<=NF;i++) printf "%s%s", $i, (i<NF?" ":"") }')"
+        # Comment = fields after key type + key body (options may precede the type).
+        comment="$(printf '%s' "$_ak_keyline" | awk '
+            {
+              for (i=1;i<=NF;i++) {
+                if ($i ~ /^(ssh-ed25519|ssh-rsa|ssh-dss|ecdsa-sha2-nistp[0-9]+|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com)$/) {
+                  if (i+2<=NF) { for (j=i+2;j<=NF;j++) printf "%s%s", $j, (j<NF?" ":""); }
+                  exit
+                }
+              }
+            }')"
         if [ "$_ak_kind" = "disabled" ]; then
             printf '%d. [DÉSACTIVÉE] %s\n' "$i" "${comment:-sans commentaire}"
         else
@@ -104,7 +113,14 @@ lsshm_access_write() {
     uid="$(id -u "$user" 2>/dev/null || echo 0)"
     gid="$(id -g "$user" 2>/dev/null || echo 0)"
 
-    if [ -w "$ssh_dir" ] || { [ ! -e "$ssh_dir" ] && [ -w "$home" ]; }; then
+    # As root, always set ownership: writable dirs would otherwise leave
+    # root:root files that StrictModes rejects for the target user.
+    if [ "${LSSHM_IS_ROOT:-0}" = "1" ]; then
+        mkdir -p "$ssh_dir"
+        install -m 0600 -o "$uid" -g "$gid" "$tmp" "$file"
+        chmod 700 "$ssh_dir"
+        chown "$uid:$gid" "$ssh_dir"
+    elif [ -w "$ssh_dir" ] || { [ ! -e "$ssh_dir" ] && [ -w "$home" ]; }; then
         mkdir -p "$ssh_dir"
         install -m 0600 "$tmp" "$file"
         chmod 700 "$ssh_dir"
@@ -143,14 +159,20 @@ lsshm_access_add() {
     local tmp; tmp="$(lsshm_mktemp)"
     lsshm_access_read "$file" >"$tmp" 2>/dev/null || true
 
-    # Duplicate detection by fingerprint.
+    # Duplicate detection by fingerprint (active and LSSHM-DISABLED entries).
     local newfp; newfp="$(lsshm_access_fingerprint_line "$keyline" | awk '{print $2}')"
-    local existing
-    while IFS= read -r existing; do
-        case "$existing" in ''|'#'*) continue ;; esac
-        local efp; efp="$(lsshm_access_fingerprint_line "$existing" | awk '{print $2}')"
+    local existing efp
+    while IFS= read -r existing || [ -n "$existing" ]; do
+        lsshm_access_classify_line "$existing"
+        [ "$_ak_kind" = "skip" ] && continue
+        efp="$(lsshm_access_fingerprint_line "$_ak_keyline" | awk '{print $2}')"
         if [ -n "$efp" ] && [ "$efp" = "$newfp" ]; then
-            lsshm_warn "Cette clé est déjà autorisée (empreinte $efp)."
+            if [ "$_ak_kind" = "disabled" ]; then
+                lsshm_warn "Cette clé existe déjà (désactivée, empreinte $efp)."
+                lsshm_info "Réactivez-la via « Désactiver / réactiver une clé »."
+            else
+                lsshm_warn "Cette clé est déjà autorisée (empreinte $efp)."
+            fi
             return 0
         fi
     done <"$tmp"

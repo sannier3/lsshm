@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-18
+
+### Fixed
+
+- Key listing / picker no longer misses existing `*.pub` pairs (bash array was
+  filled inside a subshell via `$(lsshm_keys_collect)`).
+- As root, `authorized_keys` writes now always `chown` to the target user
+  (StrictModes-safe).
+- Rollback archive path no longer polluted by status messages on stdout.
+- `host revoke-key` actually sends the key body to the remote (`$1`, not env).
+- Host delete/edit and `known_hosts` remove preserve ownership for the managed
+  user; edit restores the previous config if add is cancelled.
+- `~/` IdentityFile expansion uses the managed user's home, not process `$HOME`.
+- Privileged `mkdir` of another user's `~/.ssh` now sets ownership.
+- Temp files created inside `$(...)` are tracked for EXIT cleanup; rollback
+  scripts use `persist` temps.
+- `sshd -T` cache is file-backed so it survives command-substitution subshells.
+- Duplicate detection for access add also matches LSSHM-DISABLED entries.
+
 ## [0.3.0] - 2026-07-18
 
 ### Added
@@ -83,7 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with temporary download, `bash -n` check, SHA-256 verification, atomic
   replacement, and previous-version retention.
 
-[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/sannier3/lsshm/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/sannier3/lsshm/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sannier3/lsshm/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/sannier3/lsshm/releases/tag/v0.1.0

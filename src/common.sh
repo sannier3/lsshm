@@ -10,7 +10,7 @@
 # below falls back to a development version string.
 LSSHM_VERSION="@@LSSHM_VERSION@@"
 case "$LSSHM_VERSION" in
-    *@@*) LSSHM_VERSION="0.3.0-dev" ;;
+    *@@*) LSSHM_VERSION="0.3.1-dev" ;;
 esac
 
 LSSHM_NAME="LSSHM"
@@ -218,11 +218,20 @@ lsshm_pause() {
 # Temporary files (tracked and cleaned on exit)
 # -----------------------------------------------------------------------------
 LSSHM_TMPFILES=()
+# Side-channel list so temps created inside $(...) still get cleaned on EXIT.
+LSSHM_TMPTRACK=""
 
 lsshm_mktemp() {
-    local tmp
+    # Usage: lsshm_mktemp [persist]
+    # "persist" skips cleanup tracking (rollback helper scripts must survive EXIT).
+    local mode="${1:-}" tmp
     tmp="$(mktemp "${TMPDIR:-/tmp}/lsshm.XXXXXX")" || lsshm_die "Impossible de créer un fichier temporaire."
-    LSSHM_TMPFILES+=("$tmp")
+    if [ "$mode" != "persist" ]; then
+        LSSHM_TMPFILES+=("$tmp")
+        if [ -n "${LSSHM_TMPTRACK:-}" ]; then
+            printf '%s\n' "$tmp" >>"$LSSHM_TMPTRACK" 2>/dev/null || true
+        fi
+    fi
     printf '%s' "$tmp"
 }
 
@@ -231,6 +240,12 @@ lsshm_cleanup() {
     for f in "${LSSHM_TMPFILES[@]:-}"; do
         [ -n "$f" ] && rm -f "$f" 2>/dev/null || true
     done
+    if [ -n "${LSSHM_TMPTRACK:-}" ] && [ -f "$LSSHM_TMPTRACK" ]; then
+        while IFS= read -r f || [ -n "$f" ]; do
+            [ -n "$f" ] && rm -f "$f" 2>/dev/null || true
+        done <"$LSSHM_TMPTRACK"
+        rm -f "$LSSHM_TMPTRACK" 2>/dev/null || true
+    fi
 }
 
 # -----------------------------------------------------------------------------
@@ -254,4 +269,9 @@ lsshm_ensure_dirs() {
              "$LSSHM_CACHE_DIR" "$LSSHM_BACKUP_DIR"; do
         [ -d "$d" ] || mkdir -p "$d" 2>/dev/null || true
     done
+    # Init temp tracking file once state dir is available (survives subshells).
+    if [ -z "${LSSHM_TMPTRACK:-}" ] && [ -d "$LSSHM_STATE_DIR" ]; then
+        LSSHM_TMPTRACK="$LSSHM_STATE_DIR/tmpfiles.$$"
+        : >"$LSSHM_TMPTRACK" 2>/dev/null || LSSHM_TMPTRACK=""
+    fi
 }

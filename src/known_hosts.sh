@@ -33,6 +33,8 @@ lsshm_known_hosts_remove() {
     [ -f "$file" ] || { lsshm_error "Aucun fichier known_hosts."; return 1; }
     lsshm_backup_file "$file" "known-hosts" >/dev/null 2>&1 || true
     if ssh-keygen -R "$host" -f "$file" >/dev/null 2>&1; then
+        lsshm_chown_user "$LSSHM_CALLING_USER" "$file"
+        [ -f "${file}.old" ] && lsshm_chown_user "$LSSHM_CALLING_USER" "${file}.old"
         lsshm_ok "Empreinte de $host supprimée."
     else
         lsshm_error "Échec de la suppression pour $host."

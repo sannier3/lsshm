@@ -23,7 +23,7 @@ $ErrorActionPreference = 'Stop'
 # Constantes et etat
 # =============================================================================
 
-$script:LSSHM_VERSION = '0.3.0'
+$script:LSSHM_VERSION = '0.3.1'
 $script:LSSHM_NAME = 'LSSHM'
 $script:LSSHM_LONG_NAME = 'LSSHM - Local SSH Manager'
 $script:LSSHM_REPO_RAW = if ($env:LSSHM_REPO_RAW) { $env:LSSHM_REPO_RAW } else { 'https://raw.githubusercontent.com/sannier3/lsshm/main' }

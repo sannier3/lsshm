@@ -40,6 +40,16 @@ lsshm_target_ssh_dir() {
     printf '%s/.ssh' "$(lsshm_user_home "$LSSHM_CALLING_USER")"
 }
 
+# Expand a leading ~/ using the managed user's home (not the process $HOME).
+lsshm_expand_user_path() {
+    local path="$1" user="${2:-$LSSHM_CALLING_USER}"
+    if [ "${path#~/}" != "$path" ]; then
+        printf '%s/%s' "$(lsshm_user_home "$user")" "${path#~/}"
+    else
+        printf '%s' "$path"
+    fi
+}
+
 # True if a non-interactive sudo would succeed (cached credentials).
 lsshm_sudo_ready() {
     [ "$LSSHM_IS_ROOT" = "1" ] && return 0
@@ -152,9 +162,12 @@ lsshm_ensure_user_ssh_dir() {
         mkdir -p "$ssh_dir"
         chmod 700 "$ssh_dir"
         chown "$uid:$gid" "$ssh_dir"
-    else
-        mkdir -p "$ssh_dir" 2>/dev/null || lsshm_run_privileged mkdir -p "$ssh_dir"
+    elif mkdir -p "$ssh_dir" 2>/dev/null; then
         chmod 700 "$ssh_dir" 2>/dev/null || true
+    else
+        lsshm_run_privileged mkdir -p "$ssh_dir"
+        lsshm_run_privileged chmod 700 "$ssh_dir"
+        lsshm_run_privileged chown "$uid:$gid" "$ssh_dir"
     fi
 }
 
