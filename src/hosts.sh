@@ -169,11 +169,45 @@ lsshm_hosts_test() {
     fi
 
     lsshm_info 'SSH authentication test (BatchMode)...'
-    if ssh -o BatchMode=yes -o ConnectTimeout=5 "$name" true 2>/dev/null; then
+    local ssh_err ssh_rc=0
+    ssh_err="$(ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=yes "$name" true 2>&1)" || ssh_rc=$?
+    if [ "$ssh_rc" -eq 0 ]; then
         lsshm_ok 'Authentication succeeded.'
-    else
-        lsshm_warn 'Automatic authentication failed (missing key or password required).'
+        return 0
     fi
+
+    if printf '%s' "$ssh_err" | grep -Eqi 'REMOTE HOST IDENTIFICATION HAS CHANGED|Host key verification failed|Offending .+ key in'; then
+        lsshm_warn 'Remote host identification has changed (known_hosts conflict).'
+        lsshm_warn 'This can happen after a reinstall, or indicate a MITM risk.'
+        if lsshm_confirm "$(lsshm_tf 'Remove the old host key for %s from known_hosts?' "$host")" yes; then
+            lsshm_known_hosts_remove "$host" || true
+            [ "$host" != "$name" ] && lsshm_known_hosts_remove "$name" || true
+            if [ "$port" != "22" ]; then
+                lsshm_known_hosts_remove "[${host}]:${port}" || true
+            fi
+            if lsshm_confirm "$(lsshm_t 'Fetch and accept the new host key now?')" yes; then
+                if lsshm_have ssh-keyscan; then
+                    local file; file="$(lsshm_known_hosts_file)"
+                    mkdir -p "$(dirname "$file")"
+                    touch "$file"
+                    lsshm_backup_file "$file" "known-hosts" >/dev/null 2>&1 || true
+                    if ssh-keyscan -p "$port" "$host" 2>/dev/null >>"$file"; then
+                        lsshm_chown_user "$LSSHM_CALLING_USER" "$file"
+                        lsshm_ok 'New host key(s) for %s added to known_hosts.' "$host"
+                        lsshm_known_hosts_scan "$host" || true
+                    else
+                        lsshm_error 'Unable to fetch host keys from %s.' "$host"
+                    fi
+                else
+                    lsshm_error 'ssh-keyscan not found.'
+                fi
+            fi
+            lsshm_info 'Re-run the host test after updating known_hosts.'
+        fi
+        return 1
+    fi
+
+    lsshm_warn 'Automatic authentication failed (missing key or password required).'
 }
 
 lsshm_hosts_connect() {

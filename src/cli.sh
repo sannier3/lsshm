@@ -98,16 +98,18 @@ lsshm_cli_server_menu() {
             printf ' 6. %s\n' "$(lsshm_t 'Enable at boot')"
             printf ' 7. %s\n' "$(lsshm_t 'Disable at boot')"
             printf ' 8. %s\n' "$(lsshm_t 'Change the port')"
-            printf ' 9. %s\n' "$(lsshm_t 'Manage root access')"
-            printf '10. %s\n' "$(lsshm_t 'Password authentication')"
-            printf '11. %s\n' "$(lsshm_t 'Key authentication')"
-            printf '12. %s\n' "$(lsshm_t 'Allowed users (AllowUsers)')"
-            printf '13. %s\n' "$(lsshm_t 'Allowed groups (AllowGroups)')"
-            printf '14. %s\n' "$(lsshm_t 'Test the configuration (sshd -t)')"
-            printf '15. %s\n' "$(lsshm_t 'Show the effective configuration (sshd -T)')"
-            printf '16. %s\n' "$(lsshm_t 'View the logs')"
-            printf '17. %s\n' "$(lsshm_t 'Back')"
-            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '17' || true)"
+            printf ' 9. %s\n' "$(lsshm_t 'Address family (AddressFamily)')"
+            printf '10. %s\n' "$(lsshm_t 'Listen addresses (ListenAddress)')"
+            printf '11. %s\n' "$(lsshm_t 'Manage root access')"
+            printf '12. %s\n' "$(lsshm_t 'Password authentication')"
+            printf '13. %s\n' "$(lsshm_t 'Key authentication')"
+            printf '14. %s\n' "$(lsshm_t 'Allowed users (AllowUsers)')"
+            printf '15. %s\n' "$(lsshm_t 'Allowed groups (AllowGroups)')"
+            printf '16. %s\n' "$(lsshm_t 'Test the configuration (sshd -t)')"
+            printf '17. %s\n' "$(lsshm_t 'Show the effective configuration (sshd -T)')"
+            printf '18. %s\n' "$(lsshm_t 'View the logs')"
+            printf '19. %s\n' "$(lsshm_t 'Back')"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '19' || true)"
         fi
         case "$choice" in
             1)  lsshm_ui_run "$(lsshm_t 'OpenSSH Server installation')" lsshm_server_install ;;
@@ -118,13 +120,15 @@ lsshm_cli_server_menu() {
             6)  lsshm_ui_run "$(lsshm_t 'Enabling at boot')" lsshm_server_enable ;;
             7)  lsshm_ui_run "$(lsshm_t 'Disabling at boot')" lsshm_server_disable ;;
             8)  lsshm_menu_action lsshm_set_port ;;
-            9)  lsshm_menu_action lsshm_set_root_login ;;
-            10) lsshm_menu_action lsshm_set_password_auth ;;
-            11) lsshm_menu_action lsshm_set_pubkey_auth ;;
-            12) lsshm_menu_action lsshm_set_allow_users ;;
-            13) lsshm_menu_action lsshm_set_allow_groups ;;
-            14) lsshm_ui_run "$(lsshm_t 'sshd -t test')" lsshm_server_config_test ;;
-            15)
+            9)  lsshm_menu_action lsshm_set_address_family ;;
+            10) lsshm_menu_action lsshm_set_listen_address ;;
+            11) lsshm_menu_action lsshm_set_root_login ;;
+            12) lsshm_menu_action lsshm_set_password_auth ;;
+            13) lsshm_menu_action lsshm_set_pubkey_auth ;;
+            14) lsshm_menu_action lsshm_set_allow_users ;;
+            15) lsshm_menu_action lsshm_set_allow_groups ;;
+            16) lsshm_ui_run "$(lsshm_t 'sshd -t test')" lsshm_server_config_test ;;
+            17)
                 if lsshm_uses_dialog_ui; then
                     lsshm_menu_try lsshm_ui_show "$(lsshm_t 'Effective configuration')" lsshm_server_config_show
                 else
@@ -132,8 +136,8 @@ lsshm_cli_server_menu() {
                     lsshm_pause
                 fi
                 ;;
-            16) lsshm_ui_run "$(lsshm_t 'SSH logs')" lsshm_server_logs ;;
-            17|q|Q) break ;;
+            18) lsshm_ui_run "$(lsshm_t 'SSH logs')" lsshm_server_logs ;;
+            19|q|Q) break ;;
             *)  lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done

@@ -240,12 +240,53 @@ $script:LSSHM_MSG_fr = @{
     '  4. Restart the service'              = '  4. Redemarrer le service'
     '  5. Enable at boot'                    = '  5. Activer au demarrage'
     '  6. Disable at boot'                   = '  6. Desactiver au demarrage'
-    '  7. Manage PermitRootLogin / admin access' = '  7. Gerer PermitRootLogin / acces admin'
-    '  8. Password authentication'           = '  8. Authentification par mot de passe'
-    '  9. Key authentication'                = '  9. Authentification par cle'
-    ' 10. Test the configuration (sshd -t)'  = ' 10. Tester la configuration (sshd -t)'
-    ' 11. Show the effective configuration (sshd -T)' = ' 11. Afficher la configuration effective (sshd -T)'
-    ' 12. Back'                              = ' 12. Retour'
+    '  7. Change the port'                   = '  7. Changer le port'
+    '  8. Address family (AddressFamily)'    = '  8. Famille d''adresses (AddressFamily)'
+    '  9. Listen addresses (ListenAddress)'  = '  9. Adresses d''ecoute (ListenAddress)'
+    ' 10. Windows Firewall (allow OpenSSH)'  = ' 10. Pare-feu Windows (autoriser OpenSSH)'
+    ' 11. Manage PermitRootLogin / admin access' = ' 11. Gerer PermitRootLogin / acces admin'
+    ' 12. Password authentication'           = ' 12. Authentification par mot de passe'
+    ' 13. Key authentication'                = ' 13. Authentification par cle'
+    ' 14. Test the configuration (sshd -t)'  = ' 14. Tester la configuration (sshd -t)'
+    ' 15. Show the effective configuration (sshd -T)' = ' 15. Afficher la configuration effective (sshd -T)'
+    ' 16. Back'                              = ' 16. Retour'
+    'Change the port'                        = 'Changer le port'
+    'Address family (AddressFamily)'         = 'Famille d''adresses (AddressFamily)'
+    'Listen addresses (ListenAddress)'       = 'Adresses d''ecoute (ListenAddress)'
+    'New SSH port'                           = 'Nouveau port SSH'
+    'Invalid port.'                          = 'Port invalide.'
+    'Check your firewall before changing the port.' = 'Verifiez votre pare-feu avant de changer le port.'
+    'SSH address family (AddressFamily)'     = 'Famille d''adresses SSH (AddressFamily)'
+    'Current: {0}'                           = 'Actuel : {0}'
+    '  1. any   (IPv4 + IPv6, OpenSSH default)' = '  1. any   (IPv4 + IPv6, defaut OpenSSH)'
+    '  2. inet  (IPv4 only)'                  = '  2. inet  (IPv4 uniquement)'
+    '  3. inet6 (IPv6 only)'                 = '  3. inet6 (IPv6 uniquement)'
+    'SSH listen addresses (ListenAddress)'   = 'Adresses d''ecoute SSH (ListenAddress)'
+    'Examples: 0.0.0.0   ::   192.168.1.10   0.0.0.0 ::' = 'Exemples : 0.0.0.0   ::   192.168.1.10   0.0.0.0 ::'
+    'Empty input restores OpenSSH defaults (all interfaces).' = 'Une saisie vide restaure les defauts OpenSSH (toutes les interfaces).'
+    'Listen addresses (space-separated)'     = 'Adresses d''ecoute (separees par des espaces)'
+    'Directive removed: {0}'                 = 'Directive retiree : {0}'
+    'Directive applied: {0} ({1})'           = 'Directive appliquee : {0} ({1})'
+    'Address family      : {0}'              = 'Famille d''adresses  : {0}'
+    'Listen addresses    : {0}'              = 'Adresses d''ecoute   : {0}'
+    'Firewall            : {0}'              = 'Pare-feu             : {0}'
+    'allowed (port {0})'                     = 'autorise (port {0})'
+    'not allowed / no matching rule'         = 'non autorise / aucune regle correspondante'
+    'Windows Firewall — OpenSSH'             = 'Pare-feu Windows — OpenSSH'
+    'Status: {0}'                            = 'Etat : {0}'
+    '  1. Allow OpenSSH through the firewall' = '  1. Autoriser OpenSSH dans le pare-feu'
+    '  2. Disable OpenSSH firewall rules'    = '  2. Desactiver les regles pare-feu OpenSSH'
+    'Allow OpenSSH through Windows Firewall?' = 'Autoriser OpenSSH dans le pare-feu Windows ?'
+    'OpenSSH is allowed through Windows Firewall.' = 'OpenSSH est autorise dans le pare-feu Windows.'
+    'Created firewall rule for OpenSSH on port {0}.' = 'Regle pare-feu creee pour OpenSSH sur le port {0}.'
+    'Firewall rule updated for port {0}.'    = 'Regle pare-feu mise a jour pour le port {0}.'
+    'Enabled firewall rule: {0}'             = 'Regle pare-feu activee : {0}'
+    'Disabled firewall rule: {0}'            = 'Regle pare-feu desactivee : {0}'
+    'LSSHM firewall rule disabled.'          = 'Regle pare-feu LSSHM desactivee.'
+    'No OpenSSH firewall rule found to disable.' = 'Aucune regle pare-feu OpenSSH a desactiver.'
+    'Unable to create firewall rule: {0}'    = 'Impossible de creer la regle pare-feu : {0}'
+    'Unable to update firewall rule: {0}'    = 'Impossible de mettre a jour la regle pare-feu : {0}'
+    'Unable to disable LSSHM firewall rule: {0}' = 'Impossible de desactiver la regle pare-feu LSSHM : {0}'
     'Allow PasswordAuthentication?'          = 'Autoriser PasswordAuthentication ?'
     'Allow PubkeyAuthentication?'            = 'Autoriser PubkeyAuthentication ?'
     'Disabling keys may lock you out. Continue?' = 'Desactiver les cles peut vous verrouiller. Continuer ?'
@@ -275,6 +316,26 @@ $script:LSSHM_MSG_fr = @{
     '  3. Delete a host'                     = '  3. Supprimer une machine'
     '  4. Test a host'                       = '  4. Tester une machine'
     '  5. Connect'                           = '  5. Se connecter'
+    '  6. known_hosts: list'                 = '  6. known_hosts : lister'
+    '  7. known_hosts: remove a fingerprint' = '  7. known_hosts : supprimer une empreinte'
+    '  8. Update / accept a host key'        = '  8. Mettre a jour / accepter une cle d''hote'
+    'Remote host identification has changed (known_hosts conflict).' = 'L''identification de l''hote distant a change (conflit known_hosts).'
+    'This can happen after a reinstall, or indicate a MITM risk.' = 'Cela peut arriver apres une reinstallation, ou indiquer un risque MITM.'
+    'Remove the old host key for {0} from known_hosts?' = 'Supprimer l''ancienne cle d''hote de {0} dans known_hosts ?'
+    'Fetch and accept the new host key now?' = 'Recuperer et accepter la nouvelle cle d''hote maintenant ?'
+    'New host key(s) for {0} added to known_hosts.' = 'Nouvelle(s) cle(s) d''hote pour {0} ajoutee(s) a known_hosts.'
+    'Unable to fetch host keys from {0}.'    = 'Impossible de recuperer les cles d''hote de {0}.'
+    'Re-run the host test after updating known_hosts.' = 'Relancez le test de l''hote apres la mise a jour de known_hosts.'
+    'Connecting to {0}...'                   = 'Connexion a {0}...'
+    'No known_hosts file.'                   = 'Aucun fichier known_hosts.'
+    'Known fingerprints ({0}):'              = 'Empreintes connues ({0}) :'
+    'Host to remove from known_hosts'        = 'Hote a supprimer de known_hosts'
+    'Fingerprint of {0} removed.'            = 'Empreinte de {0} supprimee.'
+    'Removal failed for {0}.'                = 'Echec de la suppression pour {0}.'
+    'Host to scan'                           = 'Hote a scanner'
+    'ssh-keyscan not found.'                 = 'ssh-keyscan introuvable.'
+    'Announced fingerprints:'                = 'Empreintes annoncees :'
+    'Automatic authentication failed (missing key or password required).' = 'Authentification non automatique (cle manquante ou mot de passe requis).'
     # Main menu
     '1. Manage the local SSH server'         = '1. Gerer le serveur SSH local'
     '2. Manage access to this machine'       = '2. Gerer les acces a cette machine'
@@ -485,12 +546,53 @@ $script:LSSHM_MSG_es = @{
     '  4. Restart the service'              = '  4. Reiniciar el servicio'
     '  5. Enable at boot'                    = '  5. Activar al inicio'
     '  6. Disable at boot'                   = '  6. Desactivar al inicio'
-    '  7. Manage PermitRootLogin / admin access' = '  7. Gestionar PermitRootLogin / acceso admin'
-    '  8. Password authentication'           = '  8. Autenticacion por contrasena'
-    '  9. Key authentication'                = '  9. Autenticacion por clave'
-    ' 10. Test the configuration (sshd -t)'  = ' 10. Probar la configuracion (sshd -t)'
-    ' 11. Show the effective configuration (sshd -T)' = ' 11. Mostrar la configuracion efectiva (sshd -T)'
-    ' 12. Back'                              = ' 12. Volver'
+    '  7. Change the port'                   = '  7. Cambiar el puerto'
+    '  8. Address family (AddressFamily)'    = '  8. Familia de direcciones (AddressFamily)'
+    '  9. Listen addresses (ListenAddress)'  = '  9. Direcciones de escucha (ListenAddress)'
+    ' 10. Windows Firewall (allow OpenSSH)'  = ' 10. Firewall de Windows (permitir OpenSSH)'
+    ' 11. Manage PermitRootLogin / admin access' = ' 11. Gestionar PermitRootLogin / acceso admin'
+    ' 12. Password authentication'           = ' 12. Autenticacion por contrasena'
+    ' 13. Key authentication'                = ' 13. Autenticacion por clave'
+    ' 14. Test the configuration (sshd -t)'  = ' 14. Probar la configuracion (sshd -t)'
+    ' 15. Show the effective configuration (sshd -T)' = ' 15. Mostrar la configuracion efectiva (sshd -T)'
+    ' 16. Back'                              = ' 16. Volver'
+    'Change the port'                        = 'Cambiar el puerto'
+    'Address family (AddressFamily)'         = 'Familia de direcciones (AddressFamily)'
+    'Listen addresses (ListenAddress)'       = 'Direcciones de escucha (ListenAddress)'
+    'New SSH port'                           = 'Nuevo puerto SSH'
+    'Invalid port.'                          = 'Puerto no valido.'
+    'Check your firewall before changing the port.' = 'Verifique su firewall antes de cambiar el puerto.'
+    'SSH address family (AddressFamily)'     = 'Familia de direcciones SSH (AddressFamily)'
+    'Current: {0}'                           = 'Actual: {0}'
+    '  1. any   (IPv4 + IPv6, OpenSSH default)' = '  1. any   (IPv4 + IPv6, predeterminado OpenSSH)'
+    '  2. inet  (IPv4 only)'                  = '  2. inet  (solo IPv4)'
+    '  3. inet6 (IPv6 only)'                 = '  3. inet6 (solo IPv6)'
+    'SSH listen addresses (ListenAddress)'   = 'Direcciones de escucha SSH (ListenAddress)'
+    'Examples: 0.0.0.0   ::   192.168.1.10   0.0.0.0 ::' = 'Ejemplos: 0.0.0.0   ::   192.168.1.10   0.0.0.0 ::'
+    'Empty input restores OpenSSH defaults (all interfaces).' = 'Una entrada vacia restaura los valores predeterminados de OpenSSH (todas las interfaces).'
+    'Listen addresses (space-separated)'     = 'Direcciones de escucha (separadas por espacios)'
+    'Directive removed: {0}'                 = 'Directiva eliminada: {0}'
+    'Directive applied: {0} ({1})'           = 'Directiva aplicada: {0} ({1})'
+    'Address family      : {0}'              = 'Familia de direcciones: {0}'
+    'Listen addresses    : {0}'              = 'Direcciones de escucha: {0}'
+    'Firewall            : {0}'              = 'Firewall             : {0}'
+    'allowed (port {0})'                     = 'permitido (puerto {0})'
+    'not allowed / no matching rule'         = 'no permitido / ninguna regla coincidente'
+    'Windows Firewall — OpenSSH'             = 'Firewall de Windows — OpenSSH'
+    'Status: {0}'                            = 'Estado: {0}'
+    '  1. Allow OpenSSH through the firewall' = '  1. Permitir OpenSSH en el firewall'
+    '  2. Disable OpenSSH firewall rules'    = '  2. Desactivar las reglas de firewall OpenSSH'
+    'Allow OpenSSH through Windows Firewall?' = 'Permitir OpenSSH en el firewall de Windows?'
+    'OpenSSH is allowed through Windows Firewall.' = 'OpenSSH esta permitido en el firewall de Windows.'
+    'Created firewall rule for OpenSSH on port {0}.' = 'Regla de firewall creada para OpenSSH en el puerto {0}.'
+    'Firewall rule updated for port {0}.'    = 'Regla de firewall actualizada para el puerto {0}.'
+    'Enabled firewall rule: {0}'             = 'Regla de firewall activada: {0}'
+    'Disabled firewall rule: {0}'            = 'Regla de firewall desactivada: {0}'
+    'LSSHM firewall rule disabled.'          = 'Regla de firewall LSSHM desactivada.'
+    'No OpenSSH firewall rule found to disable.' = 'No hay regla de firewall OpenSSH para desactivar.'
+    'Unable to create firewall rule: {0}'    = 'No se pudo crear la regla de firewall: {0}'
+    'Unable to update firewall rule: {0}'    = 'No se pudo actualizar la regla de firewall: {0}'
+    'Unable to disable LSSHM firewall rule: {0}' = 'No se pudo desactivar la regla de firewall LSSHM: {0}'
     'Allow PasswordAuthentication?'          = 'Permitir PasswordAuthentication?'
     'Allow PubkeyAuthentication?'            = 'Permitir PubkeyAuthentication?'
     'Disabling keys may lock you out. Continue?' = 'Desactivar las claves puede bloquearle. Continuar?'
@@ -517,6 +619,26 @@ $script:LSSHM_MSG_es = @{
     '  3. Delete a host'                     = '  3. Eliminar una maquina'
     '  4. Test a host'                       = '  4. Probar una maquina'
     '  5. Connect'                           = '  5. Conectarse'
+    '  6. known_hosts: list'                 = '  6. known_hosts: listar'
+    '  7. known_hosts: remove a fingerprint' = '  7. known_hosts: eliminar una huella'
+    '  8. Update / accept a host key'        = '  8. Actualizar / aceptar una clave de host'
+    'Remote host identification has changed (known_hosts conflict).' = 'La identificacion del host remoto ha cambiado (conflicto known_hosts).'
+    'This can happen after a reinstall, or indicate a MITM risk.' = 'Puede ocurrir tras una reinstalacion, o indicar un riesgo MITM.'
+    'Remove the old host key for {0} from known_hosts?' = 'Eliminar la clave de host antigua de {0} en known_hosts?'
+    'Fetch and accept the new host key now?' = 'Obtener y aceptar ahora la nueva clave de host?'
+    'New host key(s) for {0} added to known_hosts.' = 'Nueva(s) clave(s) de host para {0} anadida(s) a known_hosts.'
+    'Unable to fetch host keys from {0}.'    = 'No se pudieron obtener las claves de host de {0}.'
+    'Re-run the host test after updating known_hosts.' = 'Vuelva a probar el host tras actualizar known_hosts.'
+    'Connecting to {0}...'                   = 'Conectando a {0}...'
+    'No known_hosts file.'                   = 'No hay archivo known_hosts.'
+    'Known fingerprints ({0}):'              = 'Huellas conocidas ({0}):'
+    'Host to remove from known_hosts'        = 'Host a eliminar de known_hosts'
+    'Fingerprint of {0} removed.'            = 'Huella de {0} eliminada.'
+    'Removal failed for {0}.'                = 'Fallo la eliminacion para {0}.'
+    'Host to scan'                           = 'Host a escanear'
+    'ssh-keyscan not found.'                 = 'ssh-keyscan no encontrado.'
+    'Announced fingerprints:'                = 'Huellas anunciadas:'
+    'Automatic authentication failed (missing key or password required).' = 'Autenticacion no automatica (falta clave o se requiere contrasena).'
     '1. Manage the local SSH server'         = '1. Gestionar el servidor SSH local'
     '2. Manage access to this machine'       = '2. Gestionar el acceso a esta maquina'
     '3. Manage my SSH keys'                  = '3. Gestionar mis claves SSH'
@@ -919,9 +1041,16 @@ function Show-LsshmServerStatus {
     $enabled = if ($svc -and $svc.StartType -eq 'Automatic') { T 'yes' } else { T 'no' }
     $port = Get-LsshmConfigValue 'port'
     if (-not $port) { $port = '22' }
+    $family = Get-LsshmConfigValue 'addressfamily'
+    if (-not $family) { $family = 'any' }
+    $listenVals = @(Get-LsshmConfigValues 'listenaddress')
+    $listen = if ($listenVals.Count -gt 0) { $listenVals -join ' ' } else { '0.0.0.0 ::' }
     Write-Host (TF 'SSH server status: {0}' $active)
     Write-Host (TF 'Auto-start          : {0}' $enabled)
     Write-Host (TF 'Port                : {0}' $port)
+    Write-Host (TF 'Address family      : {0}' $family)
+    Write-Host (TF 'Listen addresses    : {0}' $listen)
+    Write-Host (TF 'Firewall            : {0}' (Get-LsshmFirewallStatusText))
     Write-Host (TF 'Admin access        : {0}' (Get-LsshmRootLoginLabel (Get-LsshmConfigValue 'permitrootlogin')))
     Write-Host (TF 'Password auth       : {0}' (Get-LsshmYesNoLabel (Get-LsshmConfigValue 'passwordauthentication')))
     Write-Host (TF 'Key auth            : {0}' (Get-LsshmYesNoLabel (Get-LsshmConfigValue 'pubkeyauthentication')))
@@ -940,6 +1069,9 @@ function Install-LsshmOpenSshServer {
     Set-Service -Name sshd -StartupType Automatic -ErrorAction SilentlyContinue
     if (Test-LsshmServerInstalled) {
         Write-LsshmOk (T 'OpenSSH Server installed.')
+        if (Confirm-Lsshm (T 'Allow OpenSSH through Windows Firewall?') -DefaultYes) {
+            Enable-LsshmFirewallSsh | Out-Null
+        }
     } else {
         Write-LsshmError (T 'Installation failed. Try: Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0')
     }
@@ -1032,6 +1164,293 @@ function Set-LsshmSshdDirective {
     }
     Write-LsshmOk (TF 'Directive applied: {0} {1}' $Key $Value)
     return $true
+}
+
+function Get-LsshmConfigValues {
+    param([Parameter(Mandatory)][string]$Key)
+    $keyLower = $Key.ToLowerInvariant()
+    $values = [System.Collections.Generic.List[string]]::new()
+
+    $sshd = Get-LsshmSshdPath
+    if ($sshd) {
+        try {
+            $dump = & $sshd -T 2>$null
+            if ($LASTEXITCODE -eq 0 -and $dump) {
+                foreach ($line in $dump) {
+                    if ($line -match '^\s*(\S+)\s+(.+)$' -and $Matches[1].ToLowerInvariant() -eq $keyLower) {
+                        [void]$values.Add($Matches[2].Trim())
+                    }
+                }
+            }
+        } catch { }
+    }
+
+    if ($values.Count -eq 0 -and (Test-Path -LiteralPath $script:LSSHM_SSHD_CONFIG)) {
+        foreach ($line in Get-Content -LiteralPath $script:LSSHM_SSHD_CONFIG -ErrorAction SilentlyContinue) {
+            $trim = $line.Trim()
+            if ($trim -match '^\s*#' -or $trim -eq '') { continue }
+            if ($trim -match '^\s*(\S+)\s+(.+)$' -and $Matches[1].ToLowerInvariant() -eq $keyLower) {
+                [void]$values.Add($Matches[2].Trim())
+            }
+        }
+    }
+    return $values.ToArray()
+}
+
+function Set-LsshmSshdMultiDirective {
+    param(
+        [Parameter(Mandatory)][string]$Key,
+        [string[]]$Values = @()
+    )
+    Assert-LsshmAdmin
+    if (-not (Test-Path -LiteralPath $script:LSSHM_SSHD_CONFIG)) {
+        Write-LsshmError (TF 'File not found: {0}' $script:LSSHM_SSHD_CONFIG)
+        return $false
+    }
+    Backup-LsshmServerConfig | Out-Null
+    $lines = Get-Content -LiteralPath $script:LSSHM_SSHD_CONFIG
+    $out = foreach ($line in $lines) {
+        if ($line -match "^\s*$([regex]::Escape($Key))\s+" -and $line -notmatch '^\s*#') {
+            # drop existing active lines for this key
+        } else {
+            $line
+        }
+    }
+    $out = @($out)
+    if ($Values.Count -gt 0) {
+        $out += ''
+        $out += '# Managed by LSSHM'
+        foreach ($v in $Values) {
+            if ($v) { $out += "$Key $v" }
+        }
+    }
+    Set-Content -LiteralPath $script:LSSHM_SSHD_CONFIG -Value $out -Encoding UTF8
+    if (-not (Test-LsshmServerConfig)) {
+        Write-LsshmError (T 'Invalid configuration: restore a backup if needed.')
+        return $false
+    }
+    if ($Values.Count -eq 0) {
+        Write-LsshmOk (TF 'Directive removed: {0}' $Key)
+    } else {
+        Write-LsshmOk (TF 'Directive applied: {0} ({1})' $Key ($Values -join ' '))
+    }
+    return $true
+}
+
+function Set-LsshmPortMenu {
+    $cur = Get-LsshmConfigValue 'port'
+    if (-not $cur) { $cur = '22' }
+    $port = Read-LsshmPrompt (T 'New SSH port') $cur
+    if ($port -notmatch '^\d+$' -or [int]$port -lt 1 -or [int]$port -gt 65535) {
+        Write-LsshmError (T 'Invalid port.')
+        return
+    }
+    Write-LsshmWarn (T 'Check your firewall before changing the port.')
+    if (-not (Confirm-Lsshm (T 'Apply this sensitive change?'))) { return }
+    if (Set-LsshmSshdDirective -Key 'Port' -Value $port) {
+        Restart-Service $script:LSSHM_SSH_SERVICE -Force -ErrorAction SilentlyContinue
+        # Keep LSSHM firewall rule in sync when present.
+        Sync-LsshmFirewallPort -Port $port
+    }
+}
+
+function Set-LsshmAddressFamilyMenu {
+    $cur = Get-LsshmConfigValue 'addressfamily'
+    if (-not $cur) { $cur = 'any' }
+    Write-LsshmHeader
+    Write-Host (T 'SSH address family (AddressFamily)')
+    Write-Host (TF 'Current: {0}' $cur)
+    Write-Host ''
+    Write-Host (T '  1. any   (IPv4 + IPv6, OpenSSH default)')
+    Write-Host (T '  2. inet  (IPv4 only)')
+    Write-Host (T '  3. inet6 (IPv6 only)')
+    Write-Host ''
+    $choice = Read-LsshmPrompt (T 'Choice') '1'
+    $value = switch ($choice) {
+        '1' { 'any' }
+        '2' { 'inet' }
+        '3' { 'inet6' }
+        default { $null }
+    }
+    if (-not $value) {
+        Write-LsshmInfo (T 'No change.')
+        return
+    }
+    if (-not (Confirm-Lsshm (T 'Apply this sensitive change?'))) { return }
+    if (Set-LsshmSshdDirective -Key 'AddressFamily' -Value $value) {
+        Restart-Service $script:LSSHM_SSH_SERVICE -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Set-LsshmListenAddressMenu {
+    $curVals = @(Get-LsshmConfigValues 'listenaddress')
+    $cur = if ($curVals.Count -gt 0) { $curVals -join ' ' } else { '0.0.0.0 ::' }
+    Write-LsshmHeader
+    Write-Host (T 'SSH listen addresses (ListenAddress)')
+    Write-Host (TF 'Current: {0}' $cur)
+    Write-Host ''
+    Write-Host (T 'Examples: 0.0.0.0   ::   192.168.1.10   0.0.0.0 ::')
+    Write-Host (T 'Empty input restores OpenSSH defaults (all interfaces).')
+    Write-Host ''
+    $raw = Read-LsshmPrompt (T 'Listen addresses (space-separated)') $cur
+    $addrs = @()
+    if ($raw) {
+        $addrs = @($raw -split '\s+' | Where-Object { $_ })
+    }
+    if (-not (Confirm-Lsshm (T 'Apply this sensitive change?'))) { return }
+    if (Set-LsshmSshdMultiDirective -Key 'ListenAddress' -Values $addrs) {
+        Restart-Service $script:LSSHM_SSH_SERVICE -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-LsshmSshFirewallRules {
+    $rules = @()
+    try {
+        $rules = @(Get-NetFirewallRule -ErrorAction Stop | Where-Object {
+            $_.Enabled -ne $null -and (
+                $_.DisplayName -match 'OpenSSH|SSH|LSSHM' -or
+                $_.Name -match 'OpenSSH|SSH|LSSHM'
+            )
+        })
+    } catch {
+        # Fallback for older systems without Get-NetFirewallRule in PATH context
+        $rules = @()
+    }
+    return $rules
+}
+
+function Get-LsshmFirewallStatusText {
+    $port = Get-LsshmConfigValue 'port'
+    if (-not $port) { $port = '22' }
+    $rules = @(Get-LsshmSshFirewallRules | Where-Object { $_.Direction -eq 'Inbound' -and $_.Enabled -eq 'True' -and $_.Action -eq 'Allow' })
+    if ($rules.Count -gt 0) {
+        return (TF 'allowed (port {0})' $port)
+    }
+    return (T 'not allowed / no matching rule')
+}
+
+function Sync-LsshmFirewallPort {
+    param([Parameter(Mandatory)][string]$Port)
+    Assert-LsshmAdmin
+    $name = 'LSSHM-OpenSSH-Server-In-TCP'
+    try {
+        $existing = Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue
+        if ($existing) {
+            Set-NetFirewallRule -Name $name -LocalPort $Port -Enabled True -ErrorAction Stop
+            Write-LsshmOk (TF 'Firewall rule updated for port {0}.' $Port)
+            return $true
+        }
+    } catch { }
+    return $false
+}
+
+function Enable-LsshmFirewallSsh {
+    Assert-LsshmAdmin
+    $port = Get-LsshmConfigValue 'port'
+    if (-not $port) { $port = '22' }
+
+    # Prefer enabling the built-in OpenSSH rule when present (Server and Client).
+    $builtIn = @(Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -match 'OpenSSH-Server-In-TCP' -or $_.DisplayName -match 'OpenSSH.*Server'
+    })
+    $enabledAny = $false
+    foreach ($r in $builtIn) {
+        try {
+            Enable-NetFirewallRule -Name $r.Name -ErrorAction Stop
+            $enabledAny = $true
+            Write-LsshmOk (TF 'Enabled firewall rule: {0}' $r.DisplayName)
+        } catch { }
+    }
+
+    $name = 'LSSHM-OpenSSH-Server-In-TCP'
+    $existing = Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue
+    if (-not $existing) {
+        try {
+            New-NetFirewallRule `
+                -Name $name `
+                -DisplayName 'LSSHM OpenSSH Server (TCP inbound)' `
+                -Group 'LSSHM' `
+                -Enabled True `
+                -Direction Inbound `
+                -Protocol TCP `
+                -Action Allow `
+                -LocalPort $port `
+                -Profile Any `
+                -ErrorAction Stop | Out-Null
+            Write-LsshmOk (TF 'Created firewall rule for OpenSSH on port {0}.' $port)
+            $enabledAny = $true
+        } catch {
+            Write-LsshmError (TF 'Unable to create firewall rule: {0}' $_.Exception.Message)
+            return $false
+        }
+    } else {
+        try {
+            Set-NetFirewallRule -Name $name -LocalPort $port -Enabled True -Action Allow -ErrorAction Stop
+            Write-LsshmOk (TF 'Firewall rule updated for port {0}.' $port)
+            $enabledAny = $true
+        } catch {
+            Write-LsshmError (TF 'Unable to update firewall rule: {0}' $_.Exception.Message)
+            return $false
+        }
+    }
+
+    if ($enabledAny) {
+        Write-LsshmOk (T 'OpenSSH is allowed through Windows Firewall.')
+        return $true
+    }
+    return $false
+}
+
+function Disable-LsshmFirewallSsh {
+    Assert-LsshmAdmin
+    $name = 'LSSHM-OpenSSH-Server-In-TCP'
+    $disabled = $false
+    try {
+        $r = Get-NetFirewallRule -Name $name -ErrorAction SilentlyContinue
+        if ($r) {
+            Disable-NetFirewallRule -Name $name -ErrorAction Stop
+            Write-LsshmOk (T 'LSSHM firewall rule disabled.')
+            $disabled = $true
+        }
+    } catch {
+        Write-LsshmError (TF 'Unable to disable LSSHM firewall rule: {0}' $_.Exception.Message)
+    }
+
+    $builtIn = @(Get-NetFirewallRule -ErrorAction SilentlyContinue | Where-Object {
+        $_.Name -match 'OpenSSH-Server-In-TCP' -or $_.DisplayName -match 'OpenSSH.*Server'
+    })
+    foreach ($r in $builtIn) {
+        try {
+            Disable-NetFirewallRule -Name $r.Name -ErrorAction Stop
+            Write-LsshmOk (TF 'Disabled firewall rule: {0}' $r.DisplayName)
+            $disabled = $true
+        } catch { }
+    }
+
+    if (-not $disabled) {
+        Write-LsshmWarn (T 'No OpenSSH firewall rule found to disable.')
+    }
+}
+
+function Show-LsshmFirewallMenu {
+    while ($true) {
+        Clear-Host
+        Write-LsshmHeader
+        Write-Host (T 'Windows Firewall — OpenSSH')
+        Write-Host ''
+        Write-Host (TF 'Status: {0}' (Get-LsshmFirewallStatusText))
+        Write-Host ''
+        Write-Host (T '  1. Allow OpenSSH through the firewall')
+        Write-Host (T '  2. Disable OpenSSH firewall rules')
+        Write-Host (T '  3. Back')
+        $c = Read-LsshmPrompt (T 'Choice') '3'
+        switch ($c) {
+            '1' { Enable-LsshmFirewallSsh; Pause-Lsshm }
+            '2' { Disable-LsshmFirewallSsh; Pause-Lsshm }
+            '3' { return }
+            default { Write-LsshmWarn (T 'Invalid choice.'); Pause-Lsshm }
+        }
+    }
 }
 
 function Set-LsshmRootLoginMenu {
@@ -1453,6 +1872,137 @@ function Remove-LsshmHost {
     Write-LsshmOk (TF 'Host ''{0}'' deleted.' $name)
 }
 
+function Remove-LsshmKnownHost {
+    param([Parameter(Mandatory)][string]$HostSpec)
+    Ensure-LsshmDirs
+    if (-not (Test-Path -LiteralPath $script:LSSHM_KNOWN_HOSTS)) {
+        Write-LsshmError (T 'No known_hosts file.')
+        return $false
+    }
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    Copy-Item -LiteralPath $script:LSSHM_KNOWN_HOSTS -Destination (Join-Path $script:LSSHM_BACKUP_DIR "$stamp-known_hosts") -Force -ErrorAction SilentlyContinue
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & ssh-keygen -R $HostSpec -f $script:LSSHM_KNOWN_HOSTS 2>&1 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-LsshmOk (TF 'Fingerprint of {0} removed.' $HostSpec)
+            # ssh-keygen may leave known_hosts.old
+            $old = "$($script:LSSHM_KNOWN_HOSTS).old"
+            if (Test-Path -LiteralPath $old) {
+                Remove-Item -LiteralPath $old -Force -ErrorAction SilentlyContinue
+            }
+            return $true
+        }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+    Write-LsshmError (TF 'Removal failed for {0}.' $HostSpec)
+    return $false
+}
+
+function Show-LsshmKnownHostsList {
+    if (-not (Test-Path -LiteralPath $script:LSSHM_KNOWN_HOSTS)) {
+        Write-LsshmInfo (T 'No known_hosts file.')
+        return
+    }
+    Write-LsshmInfo (TF 'Known fingerprints ({0}):' $script:LSSHM_KNOWN_HOSTS)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        & ssh-keygen -lf $script:LSSHM_KNOWN_HOSTS 2>&1 | ForEach-Object { Write-Host $_ }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+}
+
+function Invoke-LsshmKnownHostRemovePrompt {
+    $hostSpec = Read-LsshmPrompt (T 'Host to remove from known_hosts')
+    if (-not $hostSpec) {
+        Write-LsshmInfo (T 'Cancelled.')
+        return
+    }
+    Remove-LsshmKnownHost -HostSpec $hostSpec | Out-Null
+}
+
+function Add-LsshmKnownHostKey {
+    param(
+        [Parameter(Mandatory)][string]$HostName,
+        [string]$Port = '22'
+    )
+    Ensure-LsshmDirs
+    if (-not (Get-Command ssh-keyscan -ErrorAction SilentlyContinue)) {
+        Write-LsshmError (T 'ssh-keyscan not found.')
+        return $false
+    }
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $lines = & ssh-keyscan -p $Port $HostName 2>$null
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+    if (-not $lines) {
+        Write-LsshmError (TF 'Unable to fetch host keys from {0}.' $HostName)
+        return $false
+    }
+    if (-not (Test-Path -LiteralPath $script:LSSHM_KNOWN_HOSTS)) {
+        New-Item -ItemType File -Path $script:LSSHM_KNOWN_HOSTS -Force | Out-Null
+    }
+    Add-Content -LiteralPath $script:LSSHM_KNOWN_HOSTS -Value $lines -Encoding ascii
+    Write-LsshmOk (TF 'New host key(s) for {0} added to known_hosts.' $HostName)
+    Write-LsshmInfo (T 'Announced fingerprints:')
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $lines | & ssh-keygen -lf - 2>&1 | ForEach-Object { Write-Host ("  {0}" -f $_) }
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+    return $true
+}
+
+function Repair-LsshmHostKeyConflict {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$HostName,
+        [string]$Port = '22'
+    )
+    Write-LsshmWarn (T 'Remote host identification has changed (known_hosts conflict).')
+    Write-LsshmWarn (T 'This can happen after a reinstall, or indicate a MITM risk.')
+    if (-not (Confirm-Lsshm (TF 'Remove the old host key for {0} from known_hosts?' $HostName) -DefaultYes)) {
+        Write-LsshmInfo (T 'Cancelled.')
+        return $false
+    }
+
+    $targets = [System.Collections.Generic.List[string]]::new()
+    foreach ($h in @($HostName, $Name)) {
+        if ($h -and -not $targets.Contains($h)) { $targets.Add($h) }
+    }
+    if ($Port -and $Port -ne '22') {
+        $bracket = "[{0}]:{1}" -f $HostName, $Port
+        if (-not $targets.Contains($bracket)) { $targets.Add($bracket) }
+    }
+
+    $ok = $false
+    foreach ($t in $targets) {
+        if (Remove-LsshmKnownHost -HostSpec $t) { $ok = $true }
+    }
+
+    if ($ok -and (Confirm-Lsshm (T 'Fetch and accept the new host key now?') -DefaultYes)) {
+        Add-LsshmKnownHostKey -HostName $HostName -Port $Port | Out-Null
+    }
+    return $ok
+}
+
+function Test-LsshmSshOutputIndicatesHostKeyConflict {
+    param([string]$Text)
+    if (-not $Text) { return $false }
+    return ($Text -match 'REMOTE HOST IDENTIFICATION HAS CHANGED' -or
+            $Text -match 'Host key verification failed' -or
+            $Text -match 'Offending .+ key in')
+}
+
 function Test-LsshmHost {
     $name = Read-LsshmPrompt (T 'Host name to test')
     if (-not $name) { return }
@@ -1485,17 +2035,53 @@ function Test-LsshmHost {
     }
 
     Write-LsshmInfo (T 'SSH authentication test (BatchMode)...')
-    & ssh -o BatchMode=yes -o ConnectTimeout=5 $name true 2>$null
-    if ($LASTEXITCODE -eq 0) {
-        Write-LsshmOk (T 'Authentication succeeded.')
-    } else {
-        Write-LsshmWarn (T 'Automatic authentication failed.')
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    $sshOut = ''
+    try {
+        $sshOut = (& ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=yes $name true 2>&1 | ForEach-Object { "$_" }) -join "`n"
+        $code = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prev
     }
+
+    if ($code -eq 0) {
+        Write-LsshmOk (T 'Authentication succeeded.')
+        return
+    }
+
+    if (Test-LsshmSshOutputIndicatesHostKeyConflict -Text $sshOut) {
+        Repair-LsshmHostKeyConflict -Name $name -HostName $hostName -Port $port | Out-Null
+        Write-LsshmInfo (T 'Re-run the host test after updating known_hosts.')
+        return
+    }
+
+    Write-LsshmWarn (T 'Automatic authentication failed (missing key or password required).')
 }
 
 function Connect-LsshmHost {
     $name = Read-LsshmPrompt (T 'Host name')
     if (-not $name) { return }
+    $hostName = Get-LsshmHostField -Name $name -Field 'HostName'
+    if (-not $hostName) { $hostName = $name }
+    $port = Get-LsshmHostField -Name $name -Field 'Port'
+    if (-not $port) { $port = '22' }
+
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        # Probe first so we can offer known_hosts repair before an interactive session.
+        $probe = (& ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=yes $name true 2>&1 | ForEach-Object { "$_" }) -join "`n"
+        $probeCode = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $prev
+    }
+
+    if ($probeCode -ne 0 -and (Test-LsshmSshOutputIndicatesHostKeyConflict -Text $probe)) {
+        Repair-LsshmHostKeyConflict -Name $name -HostName $hostName -Port $port | Out-Null
+    }
+
+    Write-LsshmInfo (TF 'Connecting to {0}...' $name)
     & ssh $name
 }
 
@@ -1744,13 +2330,17 @@ function Show-LsshmServerMenu {
         Write-Host (T '  4. Restart the service')
         Write-Host (T '  5. Enable at boot')
         Write-Host (T '  6. Disable at boot')
-        Write-Host (T '  7. Manage PermitRootLogin / admin access')
-        Write-Host (T '  8. Password authentication')
-        Write-Host (T '  9. Key authentication')
-        Write-Host (T ' 10. Test the configuration (sshd -t)')
-        Write-Host (T ' 11. Show the effective configuration (sshd -T)')
-        Write-Host (T ' 12. Back')
-        $c = Read-LsshmPrompt (T 'Choice') '12'
+        Write-Host (T '  7. Change the port')
+        Write-Host (T '  8. Address family (AddressFamily)')
+        Write-Host (T '  9. Listen addresses (ListenAddress)')
+        Write-Host (T ' 10. Windows Firewall (allow OpenSSH)')
+        Write-Host (T ' 11. Manage PermitRootLogin / admin access')
+        Write-Host (T ' 12. Password authentication')
+        Write-Host (T ' 13. Key authentication')
+        Write-Host (T ' 14. Test the configuration (sshd -t)')
+        Write-Host (T ' 15. Show the effective configuration (sshd -T)')
+        Write-Host (T ' 16. Back')
+        $c = Read-LsshmPrompt (T 'Choice') '16'
         try {
             switch ($c) {
                 '1' { Install-LsshmOpenSshServer; Pause-Lsshm }
@@ -1759,8 +2349,12 @@ function Show-LsshmServerMenu {
                 '4' { Invoke-LsshmServerAction Restart; Pause-Lsshm }
                 '5' { Set-LsshmServerStartup Automatic; Pause-Lsshm }
                 '6' { Set-LsshmServerStartup Disabled; Pause-Lsshm }
-                '7' { Set-LsshmRootLoginMenu; Pause-Lsshm }
-                '8' {
+                '7' { Set-LsshmPortMenu; Pause-Lsshm }
+                '8' { Set-LsshmAddressFamilyMenu; Pause-Lsshm }
+                '9' { Set-LsshmListenAddressMenu; Pause-Lsshm }
+                '10' { Show-LsshmFirewallMenu }
+                '11' { Set-LsshmRootLoginMenu; Pause-Lsshm }
+                '12' {
                     if (Confirm-Lsshm (T 'Allow PasswordAuthentication?') -DefaultYes:$false) {
                         Set-LsshmSshdDirective -Key 'PasswordAuthentication' -Value 'yes' | Out-Null
                     } else {
@@ -1769,7 +2363,7 @@ function Show-LsshmServerMenu {
                     Restart-Service sshd -Force -ErrorAction SilentlyContinue
                     Pause-Lsshm
                 }
-                '9' {
+                '13' {
                     if (Confirm-Lsshm (T 'Allow PubkeyAuthentication?') -DefaultYes) {
                         Set-LsshmSshdDirective -Key 'PubkeyAuthentication' -Value 'yes' | Out-Null
                     } else {
@@ -1780,9 +2374,9 @@ function Show-LsshmServerMenu {
                     Restart-Service sshd -Force -ErrorAction SilentlyContinue
                     Pause-Lsshm
                 }
-                '10' { Test-LsshmServerConfig | Out-Null; Pause-Lsshm }
-                '11' { Show-LsshmServerConfigDump; Pause-Lsshm }
-                '12' { return }
+                '14' { Test-LsshmServerConfig | Out-Null; Pause-Lsshm }
+                '15' { Show-LsshmServerConfigDump; Pause-Lsshm }
+                '16' { return }
                 default { Write-LsshmWarn (T 'Invalid choice.'); Pause-Lsshm }
             }
         } catch {
@@ -1864,15 +2458,34 @@ function Show-LsshmHostsMenu {
         Write-Host (T '  3. Delete a host')
         Write-Host (T '  4. Test a host')
         Write-Host (T '  5. Connect')
-        Write-Host (T '  6. Back')
-        $c = Read-LsshmPrompt (T 'Choice') '6'
+        Write-Host (T '  6. known_hosts: list')
+        Write-Host (T '  7. known_hosts: remove a fingerprint')
+        Write-Host (T '  8. Update / accept a host key')
+        Write-Host (T '  9. Back')
+        $c = Read-LsshmPrompt (T 'Choice') '9'
         switch ($c) {
             '1' { Show-LsshmHostsList; Pause-Lsshm }
             '2' { Add-LsshmHost; Pause-Lsshm }
             '3' { Remove-LsshmHost; Pause-Lsshm }
             '4' { Test-LsshmHost; Pause-Lsshm }
             '5' { Connect-LsshmHost }
-            '6' { return }
+            '6' { Show-LsshmKnownHostsList; Pause-Lsshm }
+            '7' { Invoke-LsshmKnownHostRemovePrompt; Pause-Lsshm }
+            '8' {
+                $h = Read-LsshmPrompt (T 'Host to scan')
+                if ($h) {
+                    $p = Read-LsshmPrompt (T 'Port') '22'
+                    if (-not $p) { $p = '22' }
+                    # Remove old keys first when updating.
+                    Remove-LsshmKnownHost -HostSpec $h | Out-Null
+                    if ($p -ne '22') {
+                        Remove-LsshmKnownHost -HostSpec ("[{0}]:{1}" -f $h, $p) | Out-Null
+                    }
+                    Add-LsshmKnownHostKey -HostName $h -Port $p | Out-Null
+                }
+                Pause-Lsshm
+            }
+            '9' { return }
             default { Write-LsshmWarn (T 'Invalid choice.'); Pause-Lsshm }
         }
     }

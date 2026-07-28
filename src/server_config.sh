@@ -332,6 +332,163 @@ lsshm_set_port() {
     lsshm_apply_dangerous_change "Port" "$port" "$(lsshm_t 'port change')"
 }
 
+# All effective values for a multi-valued directive (e.g. listenaddress).
+lsshm_server_config_effective_values() {
+    local key; key="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    local dump
+    dump="$(lsshm_server_config_dump)" || dump=""
+    if [ -n "$dump" ]; then
+        printf '%s\n' "$dump" | awk -v k="$key" '
+            tolower($1) == k { $1=""; sub(/^ /,""); print }
+        '
+        return 0
+    fi
+    return 1
+}
+
+# Upsert one or more lines for the same KEY (ListenAddress). Empty values → unset.
+lsshm_managed_set_multi() {
+    local key="$1"; shift
+    local -a values=("$@")
+    lsshm_require_root
+    lsshm_managed_ensure_include
+
+    if lsshm_config_defined_before_include "$key"; then
+        lsshm_warn "'%s' is defined in %s before the Include." "$key" "$LSSHM_SSHD_CONFIG"
+        lsshm_warn 'This value will take precedence over the file managed by LSSHM.'
+        if lsshm_confirm "$(lsshm_t 'Comment out this definition in the main file?')" no; then
+            lsshm_config_comment_directive "$key"
+        fi
+    fi
+
+    local tmp; tmp="$(lsshm_mktemp)"
+    if [ -r "$LSSHM_MANAGED_CONF" ]; then
+        cat "$LSSHM_MANAGED_CONF" >"$tmp" 2>/dev/null || true
+    elif [ -e "$LSSHM_MANAGED_CONF" ]; then
+        lsshm_run_privileged cat "$LSSHM_MANAGED_CONF" >"$tmp" 2>/dev/null || true
+    fi
+    if [ ! -s "$tmp" ]; then
+        printf '%s\n\n' "$LSSHM_MANAGED_HEADER" >"$tmp"
+    fi
+
+    local tmp2; tmp2="$(lsshm_mktemp)"
+    awk -v k="$key" '
+        { n=split($0,a," "); if (n>=1 && tolower(a[1])==tolower(k)) next; print }
+    ' "$tmp" >"$tmp2"
+    local v
+    for v in "${values[@]}"; do
+        [ -n "$v" ] || continue
+        printf '%s %s\n' "$key" "$v" >>"$tmp2"
+    done
+
+    lsshm_backup_file "$LSSHM_MANAGED_CONF" "managed-conf" >/dev/null 2>&1 || true
+    lsshm_run_privileged install -m 0644 -o root -g root "$tmp2" "$LSSHM_MANAGED_CONF"
+    lsshm_server_config_invalidate_cache
+
+    if ! lsshm_server_config_test; then
+        lsshm_error 'New configuration invalid: rolling back.'
+        lsshm_run_privileged install -m 0644 "$tmp" "$LSSHM_MANAGED_CONF" 2>/dev/null || true
+        lsshm_server_config_invalidate_cache
+        return 1
+    fi
+    if [ "${#values[@]}" -eq 0 ]; then
+        lsshm_ok 'Directive removed from managed file: %s' "$key"
+    else
+        lsshm_ok 'Directive applied: %s (%s)' "$key" "${values[*]}"
+    fi
+    return 0
+}
+
+lsshm_set_address_family() {
+    local cur; cur="$(lsshm_server_config_effective_value addressfamily)"; cur="${cur:-any}"
+    lsshm_header
+    lsshm_out 'SSH address family (AddressFamily)'
+    lsshm_out 'Current: %s' "$cur"
+    printf '\n'
+    lsshm_out '  1. any   (IPv4 + IPv6, OpenSSH default)'
+    lsshm_out '  2. inet  (IPv4 only)'
+    lsshm_out '  3. inet6 (IPv6 only)'
+    printf '\n'
+    local choice; choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '1')"
+    local value=""
+    case "$choice" in
+        1) value="any" ;;
+        2) value="inet" ;;
+        3) value="inet6" ;;
+        *) lsshm_info 'No change.'; return 0 ;;
+    esac
+    lsshm_apply_dangerous_change "AddressFamily" "$value" "$(lsshm_t 'address family change')"
+}
+
+lsshm_set_listen_address() {
+    local cur=""
+    cur="$(lsshm_server_config_effective_values listenaddress | tr '\n' ' ')"
+    cur="$(printf '%s' "$cur" | sed 's/[[:space:]]*$//')"
+    [ -n "$cur" ] || cur="0.0.0.0 ::"
+    lsshm_header
+    lsshm_out 'SSH listen addresses (ListenAddress)'
+    lsshm_out 'Current: %s' "$cur"
+    printf '\n'
+    lsshm_out 'Examples: 0.0.0.0   ::   192.168.1.10   0.0.0.0 ::'
+    lsshm_out 'Empty input restores OpenSSH defaults (all interfaces).'
+    printf '\n'
+    local raw; raw="$(lsshm_prompt "$(lsshm_t 'Listen addresses (space-separated)')" "$cur")"
+    local -a addrs=()
+    local tok
+    for tok in $raw; do
+        addrs+=("$tok")
+    done
+
+    if ! lsshm_can_prompt_tty; then
+        lsshm_error 'Sensitive change not possible without an interactive terminal: %s' "$(lsshm_t 'listen address change')"
+        return 1
+    fi
+    lsshm_warn 'Sensitive change: %s' "$(lsshm_t 'listen address change')"
+    if ! lsshm_confirm "$(lsshm_t 'Continue with an automatic safety rollback?')" no; then
+        lsshm_info 'Cancelled.'
+        return 1
+    fi
+
+    local archive; archive="$(lsshm_backup_server_config)" || return 1
+    if ! lsshm_managed_set_multi "ListenAddress" "${addrs[@]}"; then
+        lsshm_error 'Change application cancelled.'
+        return 1
+    fi
+
+    local confirm_flag="$LSSHM_STATE_DIR/rollback.confirm"
+    lsshm_run_privileged rm -f "$confirm_flag" 2>/dev/null || true
+    local script; script="$(lsshm_rollback_build_script "$archive" "$confirm_flag" "$LSSHM_ROLLBACK_DELAY")"
+    local method; method="$(lsshm_rollback_schedule "$script" "$LSSHM_ROLLBACK_DELAY")"
+    lsshm_server_reload || true
+
+    if lsshm_server_port_listening; then
+        lsshm_ok 'The SSH port is listening.'
+    else
+        lsshm_warn 'Unable to confirm the SSH port is listening.'
+    fi
+
+    printf '\n'
+    lsshm_out 'The new configuration is active.'; printf '\n'
+    lsshm_out 'An automatic rollback will occur in %s seconds.' "$LSSHM_ROLLBACK_DELAY"; printf '\n'
+    lsshm_out 'Open a second SSH connection before confirming.'; printf '\n'
+    lsshm_out '  1. The new connection works'
+    lsshm_out '  2. Restore immediately'
+    local choice; choice="$(lsshm_prompt_tty "$(lsshm_t 'Choice')" '2')"
+    case "$choice" in
+        1)
+            lsshm_rollback_cancel "$method" "$confirm_flag"
+            lsshm_ok 'Automatic rollback cancelled. Change kept.'
+            ;;
+        *)
+            lsshm_warn 'Restoring immediately...'
+            lsshm_run_privileged tar -xzf "$archive" -C / 2>/dev/null || true
+            lsshm_rollback_cancel "$method" "$confirm_flag"
+            lsshm_server_reload || true
+            lsshm_ok 'Previous configuration restored.'
+            ;;
+    esac
+}
+
 lsshm_set_allow_users() {
     local cur; cur="$(lsshm_server_config_effective_value allowusers)"
     lsshm_info 'Current AllowUsers: %s' "${cur:-$(lsshm_t 'not set')}"

@@ -168,15 +168,17 @@ lsshm_dialog_server_menu() {
         6 "$(lsshm_t 'Enable at boot')" \
         7 "$(lsshm_t 'Disable at boot')" \
         8 "$(lsshm_t 'Change the port')" \
-        9 "$(lsshm_t 'Manage root access')" \
-        10 "$(lsshm_t 'Password authentication')" \
-        11 "$(lsshm_t 'Key authentication')" \
-        12 "$(lsshm_t 'Allowed users (AllowUsers)')" \
-        13 "$(lsshm_t 'Allowed groups (AllowGroups)')" \
-        14 "$(lsshm_t 'Test the configuration (sshd -t)')" \
-        15 "$(lsshm_t 'Show the effective configuration (sshd -T)')" \
-        16 "$(lsshm_t 'View the logs')" \
-        17 "$(lsshm_t 'Back')"
+        9 "$(lsshm_t 'Address family (AddressFamily)')" \
+        10 "$(lsshm_t 'Listen addresses (ListenAddress)')" \
+        11 "$(lsshm_t 'Manage root access')" \
+        12 "$(lsshm_t 'Password authentication')" \
+        13 "$(lsshm_t 'Key authentication')" \
+        14 "$(lsshm_t 'Allowed users (AllowUsers)')" \
+        15 "$(lsshm_t 'Allowed groups (AllowGroups)')" \
+        16 "$(lsshm_t 'Test the configuration (sshd -t)')" \
+        17 "$(lsshm_t 'Show the effective configuration (sshd -T)')" \
+        18 "$(lsshm_t 'View the logs')" \
+        19 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_access_menu() {

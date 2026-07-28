@@ -97,17 +97,23 @@ lsshm_server_status() {
         lsshm_warn 'OpenSSH Server is not installed (sshd binary not found).'
         return 0
     fi
-    local active enabled port rootlogin passauth pubkey
+    local active enabled port rootlogin passauth pubkey family listen
     if lsshm_server_is_active; then active="$(lsshm_t active)"; else active="$(lsshm_t inactive)"; fi
     if lsshm_server_is_enabled; then enabled="$(lsshm_t yes)"; else enabled="$(lsshm_t no)"; fi
     port="$(lsshm_server_config_effective_value port)"; port="${port:-22}"
     rootlogin="$(lsshm_server_config_effective_value permitrootlogin)"
     passauth="$(lsshm_server_config_effective_value passwordauthentication)"
     pubkey="$(lsshm_server_config_effective_value pubkeyauthentication)"
+    family="$(lsshm_server_config_effective_value addressfamily)"; family="${family:-any}"
+    listen="$(lsshm_server_config_effective_values listenaddress | tr '\n' ' ')"
+    listen="$(printf '%s' "$listen" | sed 's/[[:space:]]*$//')"
+    [ -n "$listen" ] || listen="0.0.0.0 ::"
 
     lsshm_out 'SSH server status : %s' "$active"
     lsshm_out 'Auto-start        : %s' "$enabled"
     lsshm_out 'Port              : %s' "$port"
+    lsshm_out 'Address family    : %s' "$family"
+    lsshm_out 'Listen addresses  : %s' "$listen"
     lsshm_out 'Root access       : %s' "$(lsshm_rootlogin_label "$rootlogin")"
     lsshm_out 'Password auth.    : %s' "$(lsshm_yesno_label "$passauth")"
     lsshm_out 'Key auth.         : %s' "$(lsshm_yesno_label "$pubkey")"
