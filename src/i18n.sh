@@ -27,9 +27,19 @@ declare -A LSSHM_MSG_es
 # back to the msgid itself, as does any missing translation.
 lsshm_t() {
     local msgid="$1" out=""
+    # Quote the subscript ("$msgid"): with set -u, an unquoted key like
+    # ${LSSHM_MSG_fr[forbidden]} is treated as a variable named "forbidden".
     case "$LSSHM_LANG" in
-        fr) out="${LSSHM_MSG_fr[$msgid]-}" ;;
-        es) out="${LSSHM_MSG_es[$msgid]-}" ;;
+        fr)
+            if [[ -v "LSSHM_MSG_fr[$msgid]" ]]; then
+                out="${LSSHM_MSG_fr["$msgid"]}"
+            fi
+            ;;
+        es)
+            if [[ -v "LSSHM_MSG_es[$msgid]" ]]; then
+                out="${LSSHM_MSG_es["$msgid"]}"
+            fi
+            ;;
         *)  out="" ;;
     esac
     if [ -n "$out" ]; then
