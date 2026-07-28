@@ -17,8 +17,9 @@
 LSSHM_LANGS="en fr es"
 LSSHM_LANG="${LSSHM_LANG:-en}"
 
-declare -A LSSHM_MSG_fr
-declare -A LSSHM_MSG_es
+# Global catalogs (must use -g: i18n.sh is sourced from functions in tests/build).
+declare -gA LSSHM_MSG_fr
+declare -gA LSSHM_MSG_es
 
 # -----------------------------------------------------------------------------
 # Lookup helpers
@@ -27,17 +28,16 @@ declare -A LSSHM_MSG_es
 # back to the msgid itself, as does any missing translation.
 lsshm_t() {
     local msgid="${1-}" out="" nounset_was=0
-    # Bash + set -u treats a missing (or oddly parsed) associative-array key
-    # as an unbound variable named like the key ("forbidden", "yes", …).
+    # Bash + set -u treats missing associative-array keys as unbound variables.
     # Disable nounset only for the catalog lookup.
     case "${LSSHM_LANG-}" in
         fr|es)
             [[ $- == *u* ]] && nounset_was=1
             set +u
             if [ "${LSSHM_LANG}" = "fr" ]; then
-                out="${LSSHM_MSG_fr["$msgid"]}"
+                out="${LSSHM_MSG_fr[$msgid]}"
             else
-                out="${LSSHM_MSG_es["$msgid"]}"
+                out="${LSSHM_MSG_es[$msgid]}"
             fi
             [ "$nounset_was" = 1 ] && set -u
             ;;
@@ -160,7 +160,7 @@ lsshm_i18n_choose() {
 # =============================================================================
 # French catalog (fr)
 # =============================================================================
-LSSHM_MSG_fr=(
+declare -gA LSSHM_MSG_fr=(
     # --- common.sh -----------------------------------------------------------
     ["Press Enter to continue... "]="Appuyez sur Entrée pour continuer... "
     ["An interactive terminal is required for the menu."]="Un terminal interactif est requis pour le menu."
@@ -789,7 +789,7 @@ LSSHM_MSG_fr=(
 # =============================================================================
 # Spanish catalog (es)
 # =============================================================================
-LSSHM_MSG_es=(
+declare -gA LSSHM_MSG_es=(
     # --- common.sh -----------------------------------------------------------
     ["Press Enter to continue... "]="Pulse Intro para continuar... "
     ["An interactive terminal is required for the menu."]="Se requiere un terminal interactivo para el menú."
