@@ -10,12 +10,12 @@
 # below falls back to a development version string.
 LSSHM_VERSION="@@LSSHM_VERSION@@"
 case "$LSSHM_VERSION" in
-    *@@*) LSSHM_VERSION="0.3.1-dev" ;;
+    *@@*) LSSHM_VERSION="0.4.0-dev" ;;
 esac
 
 LSSHM_NAME="LSSHM"
 LSSHM_LONG_NAME="LSSHM - Local SSH Manager"
-LSSHM_REPO_RAW="${LSSHM_REPO_RAW:-https://raw.githubusercontent.com/sannier3/lsshm/main}"
+LSSHM_REPO_RAW="${LSSHM_REPO_RAW:-https://raw.githubusercontent.com/sannier3/lsshm/preview}"
 
 # -----------------------------------------------------------------------------
 # XDG base directories
@@ -85,14 +85,17 @@ lsshm_log() {
     fi
 }
 
-lsshm_info()  { printf '%s\n' "$*"; lsshm_log INFO "$*"; }
-lsshm_note()  { printf '%s%s%s\n' "${LSSHM_C_DIM:-}" "$*" "${LSSHM_C_RESET:-}" >&2; lsshm_log INFO "$*"; }
-lsshm_ok()    { printf '%s%s%s\n' "${LSSHM_C_GREEN:-}" "$*" "${LSSHM_C_RESET:-}"; lsshm_log OK "$*"; }
-lsshm_warn()  { printf '%s%s%s\n' "${LSSHM_C_YELLOW:-}" "$*" "${LSSHM_C_RESET:-}" >&2; lsshm_log WARN "$*"; }
-lsshm_error() { printf '%s%s%s\n' "${LSSHM_C_RED:-}" "$*" "${LSSHM_C_RESET:-}" >&2; lsshm_log ERROR "$*"; }
+# These helpers take a translatable format string (English msgid) followed by
+# optional printf arguments, e.g. lsshm_ok 'Key added for %s.' "$user".
+# The message is translated via lsshm_t and formatted with the given arguments.
+lsshm_info()  { local m; m="$(lsshm_tf "$@")"; printf '%s\n' "$m"; lsshm_log INFO "$m"; }
+lsshm_note()  { local m; m="$(lsshm_tf "$@")"; printf '%s%s%s\n' "${LSSHM_C_DIM:-}" "$m" "${LSSHM_C_RESET:-}" >&2; lsshm_log INFO "$m"; }
+lsshm_ok()    { local m; m="$(lsshm_tf "$@")"; printf '%s%s%s\n' "${LSSHM_C_GREEN:-}" "$m" "${LSSHM_C_RESET:-}"; lsshm_log OK "$m"; }
+lsshm_warn()  { local m; m="$(lsshm_tf "$@")"; printf '%s%s%s\n' "${LSSHM_C_YELLOW:-}" "$m" "${LSSHM_C_RESET:-}" >&2; lsshm_log WARN "$m"; }
+lsshm_error() { local m; m="$(lsshm_tf "$@")"; printf '%s%s%s\n' "${LSSHM_C_RED:-}" "$m" "${LSSHM_C_RESET:-}" >&2; lsshm_log ERROR "$m"; }
 
 lsshm_die() {
-    lsshm_error "$*"
+    lsshm_error "$@"
     exit 1
 }
 
@@ -121,9 +124,9 @@ lsshm_require_interactive() {
     if lsshm_is_interactive; then
         return 0
     fi
-    lsshm_error "Un terminal interactif est requis pour le menu."
-    lsshm_info "Sans menu : lsshm status | lsshm doctor | lsshm server status | lsshm key list"
-    lsshm_info "Pour installer : curl -fsSL .../lsshm.sh | bash -s -- install"
+    lsshm_error 'An interactive terminal is required for the menu.'
+    lsshm_info 'Without a menu: lsshm status | lsshm doctor | lsshm server status | lsshm key list'
+    lsshm_info 'To install: curl -fsSL .../lsshm.sh | bash -s -- install'
     exit 1
 }
 
@@ -176,7 +179,7 @@ lsshm_prompt() {
 
 lsshm_confirm() {
     # lsshm_confirm PROMPT [default_yes] -> return 0 for yes
-    local prompt="$1" default="${2:-no}" answer="" hint="[o/N]"
+    local prompt="$1" default="${2:-no}" answer="" hint="[y/N]"
     if [ "${LSSHM_ASSUME_YES:-0}" = "1" ]; then
         return 0
     fi
@@ -192,17 +195,18 @@ lsshm_confirm() {
         fi
         return 1
     fi
-    [ "$default" = "yes" ] && hint="[O/n]"
+    [ "$default" = "yes" ] && hint="[Y/n]"
     if ! lsshm_read_line answer "${prompt} ${hint} "; then
         [ "$default" = "yes" ]
         return
     fi
     answer="$(printf '%s' "$answer" | tr '[:upper:]' '[:lower:]')"
+    # Accept English, French and Spanish affirmatives/negatives.
     case "$answer" in
-        o|oui|y|yes) return 0 ;;
-        n|non|no)    return 1 ;;
-        "")          [ "$default" = "yes" ] ;;
-        *)           return 1 ;;
+        y|yes|o|oui|s|si|sí) return 0 ;;
+        n|no|non)            return 1 ;;
+        "")                  [ "$default" = "yes" ] ;;
+        *)                   return 1 ;;
     esac
 }
 
@@ -211,7 +215,7 @@ lsshm_pause() {
         return 0
     fi
     lsshm_is_interactive || return 0
-    lsshm_read_line _ "Appuyez sur Entrée pour continuer... " || true
+    lsshm_read_line _ "$(lsshm_t 'Press Enter to continue... ')" || true
 }
 
 # Run a command from a menu without aborting the loop under set -e.
@@ -240,7 +244,7 @@ lsshm_mktemp() {
     # Usage: lsshm_mktemp [persist]
     # "persist" skips cleanup tracking (rollback helper scripts must survive EXIT).
     local mode="${1:-}" tmp
-    tmp="$(mktemp "${TMPDIR:-/tmp}/lsshm.XXXXXX")" || lsshm_die "Impossible de créer un fichier temporaire."
+    tmp="$(mktemp "${TMPDIR:-/tmp}/lsshm.XXXXXX")" || lsshm_die 'Unable to create a temporary file.'
     if [ "$mode" != "persist" ]; then
         LSSHM_TMPFILES+=("$tmp")
         if [ -n "${LSSHM_TMPTRACK:-}" ]; then
@@ -270,9 +274,9 @@ lsshm_have() { command -v "$1" >/dev/null 2>&1; }
 
 lsshm_yesno_label() {
     case "$1" in
-        yes|true|on|1) printf 'oui' ;;
-        no|false|off|0) printf 'non' ;;
-        "") printf 'non défini' ;;
+        yes|true|on|1) lsshm_t 'yes' ;;
+        no|false|off|0) lsshm_t 'no' ;;
+        "") lsshm_t 'not set' ;;
         *) printf '%s' "$1" ;;
     esac
 }

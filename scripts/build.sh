@@ -13,6 +13,7 @@ VERSION_FILE="$ROOT_DIR/VERSION"
 # Module concatenation order. common.sh MUST come first, main.sh last.
 MODULES=(
     common.sh
+    i18n.sh
     platform.sh
     privileges.sh
     backup.sh

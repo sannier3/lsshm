@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-28
+
+### Added
+
+- Internationalization (i18n) of both the Linux (`lsshm.sh`) and Windows
+  (`lsshm.ps1`) CLIs. English is now the source/default language, with built-in
+  French (`fr`) and Spanish (`es`) catalogs.
+- Language selection prompt at install time (and on first run), pre-selected
+  from the system locale (`LC_ALL` / `LC_MESSAGES` / `LANG` on Linux,
+  `CurrentUICulture` on Windows).
+- Persisted language choice in the configuration (`language` key on Linux,
+  `config.json` on Windows), overridable per invocation with `--lang <code>`
+  (Linux) / `-Lang <code>` (Windows).
+- "Change the language" entry in the Settings menu (CLI and `dialog` UI).
+- `gettext`-style translation helpers with automatic fallback to the English
+  source string when a translation is missing.
+
 ### Fixed
 
 - `install` / `uninstall` / `update` / `version` / `help` / `server` no longer
@@ -110,7 +127,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with temporary download, `bash -n` check, SHA-256 verification, atomic
   replacement, and previous-version retention.
 
-[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/sannier3/lsshm/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/sannier3/lsshm/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/sannier3/lsshm/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/sannier3/lsshm/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/sannier3/lsshm/compare/v0.1.0...v0.2.0

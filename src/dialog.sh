@@ -39,11 +39,11 @@ lsshm_ui_show() {
     lsshm_tty_restore
     if [ ! -s "$tmp" ]; then
         dialog --backtitle "$LSSHM_LONG_NAME v$LSSHM_VERSION" \
-            --title "$title" --msgbox "(aucune sortie)" 8 50
+            --title "$title" --msgbox "$(lsshm_t '(no output)')" 8 50
         return 0
     fi
     dialog --clear --backtitle "$LSSHM_LONG_NAME v$LSSHM_VERSION" \
-        --title "$title" --programbox "Résultat" 22 74 0 <"$tmp" \
+        --title "$title" --programbox "$(lsshm_t 'Result')" 22 74 0 <"$tmp" \
         2>/dev/null || {
             local text; text="$(head -c 4000 "$tmp")"
             dialog --backtitle "$LSSHM_LONG_NAME v$LSSHM_VERSION" \
@@ -65,18 +65,20 @@ lsshm_ui_run() {
 
 # Offer to install dialog when missing.
 lsshm_dialog_offer_install() {
-    printf "L'interface graphique en terminal nécessite le paquet dialog.\n\n"
-    printf '1. Installer dialog\n'
-    printf '2. Continuer avec l’interface CLI\n'
-    printf '3. Annuler\n\n'
-    local choice; choice="$(lsshm_prompt 'Choix' '2')"
+    lsshm_out 'The terminal GUI requires the dialog package.'
+    printf '\n'
+    lsshm_out '1. Install dialog'
+    lsshm_out '2. Continue with the CLI interface'
+    lsshm_out '3. Cancel'
+    printf '\n'
+    local choice; choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '2')"
     case "$choice" in
         1)
             lsshm_dialog_install
             if lsshm_dialog_available; then
                 return 0
             fi
-            lsshm_warn "dialog n'a pas pu être installé. Passage à l'interface CLI."
+            lsshm_warn 'dialog could not be installed. Falling back to the CLI interface.'
             return 1
             ;;
         2) return 1 ;;
@@ -93,7 +95,7 @@ lsshm_dialog_install() {
         yum)    lsshm_run_privileged yum install -y dialog ;;
         pacman) lsshm_run_privileged pacman -Sy --noconfirm dialog ;;
         zypper) lsshm_run_privileged zypper install -y dialog ;;
-        *)      lsshm_error "Gestionnaire de paquets non pris en charge : $LSSHM_PKG_MGR" ;;
+        *)      lsshm_error 'Unsupported package manager: %s' "$LSSHM_PKG_MGR" ;;
     esac
 }
 
@@ -125,16 +127,16 @@ lsshm_dialog_status_text() {
 lsshm_dialog_menu_loop() {
     while true; do
         local choice ret=0
-        choice="$(lsshm_ui_menu "Menu principal" "$(lsshm_dialog_status_text)" \
-            1 "Gérer le serveur SSH local" \
-            2 "Gérer les accès à cette machine" \
-            3 "Gérer mes clés SSH" \
-            4 "Gérer les machines distantes" \
-            5 "Consulter les connexions et journaux" \
-            6 "Effectuer un audit de sécurité" \
-            7 "Sauvegarder ou restaurer" \
-            8 "Paramètres de LSSHM" \
-            9 "Quitter")" || ret=$?
+        choice="$(lsshm_ui_menu "$(lsshm_t 'Main menu')" "$(lsshm_dialog_status_text)" \
+            1 "$(lsshm_t 'Manage the local SSH server')" \
+            2 "$(lsshm_t 'Manage access to this machine')" \
+            3 "$(lsshm_t 'Manage my SSH keys')" \
+            4 "$(lsshm_t 'Manage remote hosts')" \
+            5 "$(lsshm_t 'View connections and logs')" \
+            6 "$(lsshm_t 'Run a security audit')" \
+            7 "$(lsshm_t 'Back up or restore')" \
+            8 "$(lsshm_t 'LSSHM settings')" \
+            9 "$(lsshm_t 'Quit')")" || ret=$?
 
         [ "$ret" -ne 0 ] && break
         case "$choice" in
@@ -143,7 +145,7 @@ lsshm_dialog_menu_loop() {
             3) lsshm_menu_try lsshm_cli_keys_menu ;;
             4) lsshm_menu_try lsshm_cli_hosts_menu ;;
             5) lsshm_menu_try lsshm_logs_menu ;;
-            6) lsshm_ui_run "Audit de sécurité" lsshm_audit ;;
+            6) lsshm_ui_run "$(lsshm_t 'Security audit')" lsshm_audit ;;
             7) lsshm_menu_try lsshm_backup_menu ;;
             8) lsshm_menu_try lsshm_settings_menu ;;
             9) break ;;
@@ -157,104 +159,108 @@ lsshm_dialog_menu_loop() {
 lsshm_dialog_server_menu() {
     local body
     body="$(lsshm_server_status 2>/dev/null)"
-    lsshm_ui_menu "Serveur SSH local" "$body" \
-        1 "Installer OpenSSH Server" \
-        2 "Démarrer le service" \
-        3 "Arrêter le service" \
-        4 "Redémarrer le service" \
-        5 "Recharger le service" \
-        6 "Activer au démarrage" \
-        7 "Désactiver au démarrage" \
-        8 "Changer le port" \
-        9 "Gérer l'accès root" \
-        10 "Authentification par mot de passe" \
-        11 "Authentification par clé" \
-        12 "Utilisateurs autorisés (AllowUsers)" \
-        13 "Groupes autorisés (AllowGroups)" \
-        14 "Tester la configuration (sshd -t)" \
-        15 "Afficher la configuration effective (sshd -T)" \
-        16 "Voir les journaux" \
-        17 "Retour"
+    lsshm_ui_menu "$(lsshm_t 'Local SSH server')" "$body" \
+        1 "$(lsshm_t 'Install OpenSSH Server')" \
+        2 "$(lsshm_t 'Start the service')" \
+        3 "$(lsshm_t 'Stop the service')" \
+        4 "$(lsshm_t 'Restart the service')" \
+        5 "$(lsshm_t 'Reload the service')" \
+        6 "$(lsshm_t 'Enable at boot')" \
+        7 "$(lsshm_t 'Disable at boot')" \
+        8 "$(lsshm_t 'Change the port')" \
+        9 "$(lsshm_t 'Address family (AddressFamily)')" \
+        10 "$(lsshm_t 'Listen addresses (ListenAddress)')" \
+        11 "$(lsshm_t 'Manage root access')" \
+        12 "$(lsshm_t 'Password authentication')" \
+        13 "$(lsshm_t 'Key authentication')" \
+        14 "$(lsshm_t 'Allowed users (AllowUsers)')" \
+        15 "$(lsshm_t 'Allowed groups (AllowGroups)')" \
+        16 "$(lsshm_t 'Test the configuration (sshd -t)')" \
+        17 "$(lsshm_t 'Show the effective configuration (sshd -T)')" \
+        18 "$(lsshm_t 'View the logs')" \
+        19 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_access_menu() {
     local user="$1" body
-    body="Clés autorisées pour se connecter ICI
-Utilisateur ciblé : $user"
-    lsshm_ui_menu "Accès à cette machine" "$body" \
-        1 "Lister les utilisateurs" \
-        2 "Lister les clés autorisées" \
-        3 "Ajouter une clé" \
-        4 "Supprimer une clé" \
-        5 "Désactiver / réactiver une clé" \
-        6 "Réparer les permissions ~/.ssh" \
-        7 "Détecter les doublons" \
-        8 "Changer d'utilisateur ciblé" \
-        9 "Retour"
+    body="$(lsshm_t 'Access to this machine (keys allowed to connect HERE)')
+$(lsshm_tf 'Target user: %s' "$user")"
+    lsshm_ui_menu "$(lsshm_t 'Manage access to this machine')" "$body" \
+        1 "$(lsshm_t 'List users')" \
+        2 "$(lsshm_t 'List authorized keys')" \
+        3 "$(lsshm_t 'Add a key (paste or import a .pub)')" \
+        4 "$(lsshm_t 'Remove a key')" \
+        5 "$(lsshm_t 'Disable / re-enable a key')" \
+        6 "$(lsshm_t 'Repair ~/.ssh permissions')" \
+        7 "$(lsshm_t 'Detect duplicates')" \
+        8 "$(lsshm_t 'Change target user')" \
+        9 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_keys_menu() {
-    lsshm_ui_menu "Clés SSH" "Utilisateur : $LSSHM_CALLING_USER — pour se connecter AILLEURS" \
-        1 "Lister les paires de clés" \
-        2 "Générer une nouvelle clé (ED25519)" \
-        3 "Inspecter une clé" \
-        4 "Afficher / exporter une clé publique" \
-        5 "Changer la phrase secrète" \
-        6 "Supprimer une paire de clés" \
-        7 "ssh-agent : lister" \
-        8 "ssh-agent : ajouter une clé" \
-        9 "ssh-agent : retirer une clé" \
-        10 "Changer d'utilisateur ciblé" \
-        11 "Retour"
+    lsshm_ui_menu "$(lsshm_t 'Manage my SSH keys')" "$(lsshm_tf 'SSH keys of %s (to connect ELSEWHERE)' "$LSSHM_CALLING_USER")" \
+        1 "$(lsshm_t 'List key pairs')" \
+        2 "$(lsshm_t 'Generate a new key (ED25519 by default)')" \
+        3 "$(lsshm_t 'Inspect a key')" \
+        4 "$(lsshm_t 'Show / export a public key')" \
+        5 "$(lsshm_t 'Change the passphrase')" \
+        6 "$(lsshm_t 'Delete a key pair')" \
+        7 "$(lsshm_t 'ssh-agent: list')" \
+        8 "$(lsshm_t 'ssh-agent: add a key')" \
+        9 "$(lsshm_t 'ssh-agent: remove a key')" \
+        10 "$(lsshm_t 'Change target user')" \
+        11 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_hosts_menu() {
-    lsshm_ui_menu "Machines distantes" "Gestion ~/.ssh/config (facultatif)" \
-        1 "Lister les machines" \
-        2 "Ajouter une machine" \
-        3 "Modifier une machine" \
-        4 "Supprimer une machine" \
-        5 "Tester une machine" \
-        6 "Configuration effective (ssh -G)" \
-        7 "Se connecter à une machine" \
-        8 "Copier une clé (ssh-copy-id)" \
-        9 "Retirer une clé distante" \
-        10 "known_hosts : lister" \
-        11 "known_hosts : supprimer une empreinte" \
-        12 "Retour"
+    lsshm_ui_menu "$(lsshm_t 'Remote hosts')" "$(lsshm_t 'Remote hosts (~/.ssh/config) - optional')" \
+        1 "$(lsshm_t 'List hosts')" \
+        2 "$(lsshm_t 'Add a host')" \
+        3 "$(lsshm_t 'Edit a host')" \
+        4 "$(lsshm_t 'Delete a host')" \
+        5 "$(lsshm_t 'Test a host (resolution, port, auth)')" \
+        6 "$(lsshm_t 'Effective configuration (ssh -G)')" \
+        7 "$(lsshm_t 'Connect to a host')" \
+        8 "$(lsshm_t 'Copy a key (ssh-copy-id)')" \
+        9 "$(lsshm_t 'Revoke a remote key')" \
+        10 "$(lsshm_t 'known_hosts: list')" \
+        11 "$(lsshm_t 'known_hosts: remove a fingerprint')" \
+        12 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_settings_menu() {
     lsshm_config_load
     local body
-    body="Utilisateur administré : $LSSHM_CALLING_USER
-Vérification des mises à jour : $LSSHM_CFG_UPDATE_CHECK
-Canal : $LSSHM_CFG_UPDATE_CHANNEL
-Fichier : $LSSHM_CONFIG_FILE"
-    lsshm_ui_menu "Paramètres de LSSHM" "$body" \
-        1 "Vérification : toujours" \
-        2 "Vérification : une fois par jour" \
-        3 "Vérification : jamais" \
-        4 "Vérifier les mises à jour maintenant" \
-        5 "Afficher le diagnostic (doctor)" \
-        6 "Changer d'utilisateur administré" \
-        7 "Retour"
+    body="$(lsshm_tf 'Managed user        : %s' "$LSSHM_CALLING_USER")
+$(lsshm_tf 'Update check        : %s' "$LSSHM_CFG_UPDATE_CHECK")
+$(lsshm_tf 'Update channel      : %s' "$LSSHM_CFG_UPDATE_CHANNEL")
+$(lsshm_tf 'Language            : %s' "$(lsshm_lang_native_name "$LSSHM_LANG")")
+$(lsshm_tf 'Configuration file  : %s' "$LSSHM_CONFIG_FILE")"
+    lsshm_ui_menu "$(lsshm_t 'LSSHM settings')" "$body" \
+        1 "$(lsshm_t 'Update check: always')" \
+        2 "$(lsshm_t 'Update check: once a day')" \
+        3 "$(lsshm_t 'Update check: never')" \
+        4 "$(lsshm_t 'Check for updates now')" \
+        5 "$(lsshm_t 'Show diagnostics (doctor)')" \
+        6 "$(lsshm_t 'Change the language')" \
+        7 "$(lsshm_t 'Change managed user')" \
+        8 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_logs_menu() {
-    lsshm_ui_menu "Connexions et journaux" "Consulter l'activité SSH" \
-        1 "Sessions actives" \
-        2 "Connexions récentes" \
-        3 "Tentatives échouées" \
-        4 "Journaux du service SSH" \
-        5 "Retour"
+    lsshm_ui_menu "$(lsshm_t 'Connections and logs')" "$(lsshm_t 'Consult SSH activity')" \
+        1 "$(lsshm_t 'Active sessions')" \
+        2 "$(lsshm_t 'Recent logins')" \
+        3 "$(lsshm_t 'Failed attempts')" \
+        4 "$(lsshm_t 'SSH service logs')" \
+        5 "$(lsshm_t 'Back')"
 }
 
 lsshm_dialog_backup_menu() {
-    lsshm_ui_menu "Sauvegarde et restauration" "Sauvegarder ou restaurer la configuration SSH" \
-        1 "Sauvegarder la configuration du serveur SSH" \
-        2 "Sauvegarder les clés autorisées" \
-        3 "Lister les sauvegardes" \
-        4 "Restaurer une configuration serveur" \
-        5 "Retour"
+    lsshm_ui_menu "$(lsshm_t 'Backup and restore')" "$(lsshm_t 'Back up or restore the SSH configuration')" \
+        1 "$(lsshm_t 'Back up the SSH server configuration')" \
+        2 "$(lsshm_t 'Back up authorized keys (authorized_keys)')" \
+        3 "$(lsshm_t 'List backups')" \
+        4 "$(lsshm_t 'Restore a server configuration')" \
+        5 "$(lsshm_t 'Back')"
 }

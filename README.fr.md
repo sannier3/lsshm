@@ -7,7 +7,21 @@ LSSHM est un outil de gestion OpenSSH **local** : serveur SSH, accès entrants, 
 Interface CLI par défaut (sans dépendance) et interface `dialog` facultative.
 
 > [!WARNING]
-> LSSHM est en développement actif (v0.3.1). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+> LSSHM est en développement actif (v0.4.0). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+
+## Langues
+
+LSSHM est entièrement internationalisé. L'anglais est la langue par défaut ; le français et l'espagnol sont intégrés. À l'installation (et au premier lancement), LSSHM demande quelle langue utiliser, pré-sélectionnée selon la locale du système, puis mémorise le choix. Vous pouvez la changer à tout moment depuis le menu **Paramètres** ou par commande :
+
+```bash
+lsshm --lang fr        # Linux (en, fr, es)
+```
+
+```powershell
+.\lsshm.ps1 -Lang fr   # Windows (en, fr, es)
+```
+
+Les chaînes non traduites reviennent automatiquement à l'anglais.
 
 ## Positionnement
 
@@ -24,7 +38,7 @@ LSSHM gère quatre domaines distincts, visibles dans tous les menus :
 
 ### Linux
 
-Installe LSSHM dans `~/.local` et crée la commande `lsshm` :
+Installe LSSHM dans `~/.local`, crée la commande `lsshm`, et configure automatiquement `~/.local/bin` dans le PATH (`~/.profile`, et `~/.bashrc` s’il existe) :
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
@@ -33,11 +47,14 @@ curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash
 Puis lancez :
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"   # une fois, dans le terminal actuel
 lsshm
 ```
 
-Les prochaines connexions SSH chargeront le PATH automatiquement (`~/.profile`).
+Si `lsshm` est introuvable dans le terminal **actuel** (par exemple après `curl | bash`, qui ne peut pas modifier le shell parent), ouvrez un nouveau terminal, ou une fois :
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
 
 > Pas de `sudo` pour l'installation. Les privilèges root ne sont demandés que pour gérer le serveur SSH ou les fichiers système.
 
@@ -50,7 +67,7 @@ irm https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.ps1 -OutFile $en
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1
 ```
 
-Ou installation dans le profil utilisateur :
+Ou installation dans le profil utilisateur (ajoute automatiquement le répertoire d'installation au PATH utilisateur) :
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1 install
@@ -134,11 +151,11 @@ lsshm host list|add
 lsshm host edit|delete|test|connect|copy-key|revoke-key NOM
 ```
 
-Options globales : `--user NOM`, `-y`, `--no-color`, `-h`.
+Options globales : `--user NOM`, `--lang CODE`, `-y`, `--no-color`, `-h`.
 
 ### Administrer un autre utilisateur (root / Debian)
 
-En session **root** (console, LXC, ou `sudo`), LSSHM demande quel utilisateur administrer pour les fichiers personnels (`~/.ssh` : clés, `authorized_keys`, `config`). Le serveur SSH système reste géré en root.
+En session **root** (console, LXC, ou `sudo`), LSSHM demande quel utilisateur administrer pour les fichiers personnels (`~/.ssh` : clés, `authorized_keys`, `config`). Une session root directe présélectionne **root** ; une session `sudo` présélectionne **l’utilisateur appelant** (l’option 2 permet d’en choisir un autre, dont root). Le serveur SSH système reste géré en root.
 
 Exemples :
 
@@ -155,16 +172,20 @@ lsshm --user jb key generate
 
 Vous pouvez aussi changer d’utilisateur dans **Accès**, **Clés** ou **Paramètres**.
 
-## Fonctionnalités v0.3.1
+## Fonctionnalités v0.4.0
 
+- Interface multilingue (anglais, français, espagnol) avec pré-sélection selon la locale
 - Détection Debian / dérivés, systemd, LXC
-- Installation et gestion du service OpenSSH Server
-- Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf`
+- Installation et gestion du service OpenSSH Server (Linux et Windows)
+- Paramètres d’écoute : `Port`, `AddressFamily`, `ListenAddress`
+- Pare-feu Windows : autoriser / désactiver OpenSSH (Server et Client)
+- Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf` (Linux) ou `%ProgramData%\ssh\sshd_config` (Windows)
 - Lecture effective (`sshd -T`) et validation (`sshd -t`)
 - Gestion lisible de `PermitRootLogin`, mots de passe, clés publiques, `AllowUsers` / `AllowGroups`
-- Restauration automatique pour changements dangereux (port, root, mots de passe…)
+- Restauration automatique pour changements dangereux (port, adresses d’écoute, root, mots de passe…)
 - Gestion des `authorized_keys` (liste, ajout, suppression, désactivation, réparation, doublons)
 - Génération ED25519/RSA, `ssh-agent`, `~/.ssh/config`, `ssh-copy-id`
+- Gestion de `known_hosts`, y compris réparation quand la clé d’un hôte distant a changé
 - Audit de sécurité, journaux, sauvegarde/restauration
 - Mise à jour sécurisée (`bash -n`, SHA-256, remplacement atomique, rollback)
 

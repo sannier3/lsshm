@@ -13,7 +13,7 @@ lsshm_users_list() {
 }
 
 lsshm_users_print() {
-    lsshm_info "Utilisateurs locaux :"
+    lsshm_info 'Local users:'
     local name uid home
     while IFS=: read -r name uid home; do
         printf '  %-16s uid=%-6s %s\n' "$name" "$uid" "$home"

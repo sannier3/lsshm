@@ -19,6 +19,7 @@ lsshm_bootstrap() {
     lsshm_ensure_dirs
     lsshm_config_write_default
     lsshm_config_load
+    lsshm_i18n_init
     trap lsshm_cleanup EXIT INT TERM
 }
 
@@ -26,51 +27,49 @@ lsshm_bootstrap() {
 # Usage
 # ---------------------------------------------------------------------------
 lsshm_usage() {
-    cat <<EOF
-$LSSHM_LONG_NAME v$LSSHM_VERSION
-
-Usage :
-  lsshm                     Ouvrir le menu CLI
-  lsshm ui | --ui           Ouvrir l'interface dialog
-  lsshm status              Afficher l'état SSH local
-  lsshm doctor              Diagnostic de l'environnement
-  lsshm audit               Audit de sécurité
-  lsshm update [rollback]   Mettre à jour LSSHM (ou revenir en arrière)
-  lsshm install             Installer LSSHM dans ~/.local
-  lsshm uninstall           Désinstaller LSSHM
-  lsshm version             Afficher la version
-  lsshm help                Afficher cette aide
-
-Options globales :
-  --user NOM                Administrer les fichiers SSH de NOM (accès, clés, hosts)
-  --ui                      Forcer l'interface dialog
-  -y, --yes                 Répondre oui automatiquement (non interactif)
-  --no-color                Désactiver la couleur
-  -V, --version             Afficher la version
-  -h, --help                Afficher cette aide
-
-Serveur SSH local :
-  lsshm server status|install|start|stop|restart|reload|enable|disable
-  lsshm server config|test|logs
-
-Accès entrants (clés autorisées ICI) :
-  lsshm access list [--user U]
-  lsshm access add [--user U]
-  lsshm access remove [--user U]
-  lsshm access disable [--user U]
-  lsshm access repair [--user U]
-
-Clés locales (pour se connecter AILLEURS) :
-  lsshm key list|generate
-  lsshm key inspect PATH
-  lsshm key export PATH
-  lsshm key delete PATH
-  lsshm key agent list|add PATH|remove PATH
-
-Machines distantes :
-  lsshm host list|add
-  lsshm host edit|delete|test|connect|copy-key|revoke-key NOM
-EOF
+    printf '%s v%s\n\n' "$LSSHM_LONG_NAME" "$LSSHM_VERSION"
+    lsshm_out 'Usage:'
+    printf '  lsshm                     %s\n' "$(lsshm_t 'Open the CLI menu')"
+    printf '  lsshm ui | --ui           %s\n' "$(lsshm_t 'Open the dialog interface')"
+    printf '  lsshm status              %s\n' "$(lsshm_t 'Show local SSH status')"
+    printf '  lsshm doctor              %s\n' "$(lsshm_t 'Environment diagnostics')"
+    printf '  lsshm audit               %s\n' "$(lsshm_t 'Security audit')"
+    printf '  lsshm update [rollback]   %s\n' "$(lsshm_t 'Update LSSHM (or roll back)')"
+    printf '  lsshm install             %s\n' "$(lsshm_t 'Install LSSHM into ~/.local')"
+    printf '  lsshm uninstall           %s\n' "$(lsshm_t 'Uninstall LSSHM')"
+    printf '  lsshm version             %s\n' "$(lsshm_t 'Show the version')"
+    printf '  lsshm help                %s\n' "$(lsshm_t 'Show this help')"
+    printf '\n'
+    lsshm_out 'Global options:'
+    printf '  --user NAME               %s\n' "$(lsshm_t "Manage NAME's SSH files (access, keys, hosts)")"
+    printf '  --lang CODE               %s\n' "$(lsshm_tf 'Interface language (%s)' "$LSSHM_LANGS")"
+    printf '  --ui                      %s\n' "$(lsshm_t 'Force the dialog interface')"
+    printf '  -y, --yes                 %s\n' "$(lsshm_t 'Answer yes automatically (non-interactive)')"
+    printf '  --no-color                %s\n' "$(lsshm_t 'Disable color')"
+    printf '  -V, --version             %s\n' "$(lsshm_t 'Show the version')"
+    printf '  -h, --help                %s\n' "$(lsshm_t 'Show this help')"
+    printf '\n'
+    lsshm_out 'Local SSH server:'
+    printf '  lsshm server status|install|start|stop|restart|reload|enable|disable\n'
+    printf '  lsshm server config|test|logs\n'
+    printf '\n'
+    lsshm_out 'Incoming access (keys allowed HERE):'
+    printf '  lsshm access list [--user U]\n'
+    printf '  lsshm access add [--user U]\n'
+    printf '  lsshm access remove [--user U]\n'
+    printf '  lsshm access disable [--user U]\n'
+    printf '  lsshm access repair [--user U]\n'
+    printf '\n'
+    lsshm_out 'Local keys (to connect ELSEWHERE):'
+    printf '  lsshm key list|generate\n'
+    printf '  lsshm key inspect PATH\n'
+    printf '  lsshm key export PATH\n'
+    printf '  lsshm key delete PATH\n'
+    printf '  lsshm key agent list|add PATH|remove PATH\n'
+    printf '\n'
+    lsshm_out 'Remote hosts:'
+    printf '  lsshm host list|add\n'
+    printf '  lsshm host edit|delete|test|connect|copy-key|revoke-key NAME\n'
 }
 
 # ---------------------------------------------------------------------------
@@ -92,40 +91,57 @@ lsshm_path_is_set() {
     return 1
 }
 
-lsshm_path_activate_hint() {
-    lsshm_info "Pour utiliser lsshm tout de suite (sans redémarrage ni reconnexion) :"
-    printf '\n  export PATH="%s:$PATH"\n' "$LSSHM_BIN_DIR"
-    printf '  lsshm\n\n'
-    lsshm_info "Ou en une commande :"
-    printf '  %s\n\n' "$LSSHM_BIN_LINK"
-    lsshm_note "Les nouvelles sessions SSH chargeront ~/.profile automatiquement."
+lsshm_path_activate_session() {
+    if lsshm_path_is_set; then
+        return 0
+    fi
+    export PATH="$LSSHM_BIN_DIR:$PATH"
+    lsshm_ok 'PATH activated for this session.'
 }
 
+# Persist ~/.local/bin in the user profile and activate it in the current shell.
+# No interactive confirm: called automatically after a successful install.
+lsshm_ensure_path() {
+    local profile="$LSSHM_HOME/.profile"
+    local bashrc="$LSSHM_HOME/.bashrc"
+    local wrote=0
+
+    if ! lsshm_path_in_file "$profile"; then
+        lsshm_path_export_line >>"$profile"
+        wrote=1
+        lsshm_ok 'PATH configured in %s for future logins.' "$profile"
+    fi
+
+    # Root interactive shell (Debian, Proxmox): ~/.bashrc is often read each session.
+    if [ -f "$bashrc" ] && ! lsshm_path_in_file "$bashrc"; then
+        lsshm_path_export_line >>"$bashrc"
+        wrote=1
+        lsshm_ok 'Also added to %s (interactive shell).' "$bashrc"
+    fi
+
+    if [ "$wrote" = "0" ] && lsshm_path_in_file "$profile"; then
+        lsshm_ok 'PATH already configured in %s.' "$profile"
+    fi
+
+    lsshm_path_activate_session
+}
+
+# Legacy interactive helper (kept for callers that still ask). Prefer lsshm_ensure_path.
 lsshm_check_path() {
     lsshm_path_is_set && return 0
-
-    lsshm_warn "$LSSHM_BIN_DIR n'est pas dans votre PATH."
-    if lsshm_confirm "Ajouter l'export PATH dans ~/.profile ?" yes; then
-        local profile="$LSSHM_HOME/.profile"
-        if ! lsshm_path_in_file "$profile"; then
-            lsshm_path_export_line >>"$profile"
-        fi
-        # Shell interactif root (Debian, Proxmox) : ~/.bashrc est souvent lu à chaque session.
-        local bashrc="$LSSHM_HOME/.bashrc"
-        if [ -f "$bashrc" ] && ! lsshm_path_in_file "$bashrc"; then
-            lsshm_path_export_line >>"$bashrc"
-            lsshm_ok "Ajouté aussi à $bashrc (shell interactif)."
-        fi
-        lsshm_ok "PATH configuré dans $profile pour les prochaines connexions."
-    else
-        lsshm_info "Ajoutez manuellement : export PATH=\"\$HOME/.local/bin:\$PATH\""
-    fi
-    lsshm_path_activate_hint
+    lsshm_ensure_path
 }
 
 lsshm_install() {
     lsshm_header
-    lsshm_info "Installation de LSSHM dans le répertoire utilisateur..."
+
+    # Ask which language to use (preselecting the detected system language) and
+    # store the choice so it persists for future runs.
+    if lsshm_is_interactive; then
+        lsshm_i18n_choose
+    fi
+
+    lsshm_info 'Installing LSSHM into the user directory...'
     lsshm_ensure_dirs
     mkdir -p "$LSSHM_DATA_DIR" "$LSSHM_BIN_DIR"
 
@@ -133,48 +149,44 @@ lsshm_install() {
     if [ -n "$self" ] && [ -f "$self" ]; then
         install -m 0755 "$self" "$LSSHM_INSTALL_TARGET"
     else
-        lsshm_info "Téléchargement de lsshm.sh depuis le dépôt..."
+        lsshm_info 'Downloading lsshm.sh from the repository...'
         local tmp; tmp="$(lsshm_mktemp)"
-        lsshm_download "$LSSHM_REPO_RAW/lsshm.sh" "$tmp" || lsshm_die "Échec du téléchargement."
-        bash -n "$tmp" || lsshm_die "Le script téléchargé est invalide."
-        lsshm_update_verify_checksum "$tmp" || lsshm_die "Vérification SHA-256 échouée : installation annulée."
+        lsshm_download "$LSSHM_REPO_RAW/lsshm.sh" "$tmp" || lsshm_die 'Download failed.'
+        bash -n "$tmp" || lsshm_die 'The downloaded script is invalid.'
+        lsshm_update_verify_checksum "$tmp" || lsshm_die 'SHA-256 verification failed: installation aborted.'
         install -m 0755 "$tmp" "$LSSHM_INSTALL_TARGET"
     fi
 
     ln -sf "$LSSHM_INSTALL_TARGET" "$LSSHM_BIN_LINK"
-    lsshm_ok "Installé :"
+    lsshm_ok 'Installed:'
     printf '  %s\n' "$LSSHM_INSTALL_TARGET"
     printf '  %s -> %s\n' "$LSSHM_BIN_LINK" "$LSSHM_INSTALL_TARGET"
 
     lsshm_config_write_default
-    lsshm_check_path
-    lsshm_ok "Installation terminée."
-    if ! lsshm_path_is_set; then
-        lsshm_note "La commande lsshm n'est pas encore active dans CE terminal."
-        lsshm_path_activate_hint
-    else
-        lsshm_ok "Lancez : lsshm"
-    fi
+    lsshm_ensure_path
+    lsshm_ok 'Installation complete.'
+    lsshm_ok 'Run: lsshm'
+    lsshm_note 'PATH was updated for future sessions; open a new terminal if the command is not found.'
 }
 
 lsshm_uninstall() {
     lsshm_header
-    lsshm_warn "Désinstallation de LSSHM."
-    lsshm_confirm "Continuer ?" no || { lsshm_info "Annulé."; return 0; }
+    lsshm_warn 'Uninstalling LSSHM.'
+    lsshm_confirm "$(lsshm_t 'Continue?')" no || { lsshm_info 'Cancelled.'; return 0; }
 
     rm -f "$LSSHM_BIN_LINK"
     rm -f "$LSSHM_INSTALL_TARGET" "$LSSHM_INSTALL_TARGET.prev"
     rmdir "$LSSHM_DATA_DIR" 2>/dev/null || true
-    lsshm_ok "Binaire et lien supprimés."
+    lsshm_ok 'Binary and link removed.'
 
-    if lsshm_confirm "Supprimer aussi la configuration et l'état ($LSSHM_CONFIG_DIR, $LSSHM_STATE_DIR) ?" no; then
+    if lsshm_confirm "$(lsshm_tf 'Also remove configuration and state (%s, %s)?' "$LSSHM_CONFIG_DIR" "$LSSHM_STATE_DIR")" no; then
         rm -rf "$LSSHM_CONFIG_DIR" "$LSSHM_STATE_DIR" "$LSSHM_CACHE_DIR"
-        lsshm_ok "Configuration et état supprimés."
+        lsshm_ok 'Configuration and state removed.'
     else
-        lsshm_info "Configuration conservée : $LSSHM_CONFIG_DIR"
+        lsshm_info 'Configuration kept: %s' "$LSSHM_CONFIG_DIR"
     fi
-    lsshm_info "Note : LSSHM ne modifie pas votre configuration SSH lors de la désinstallation."
-    lsshm_info "N'oubliez pas de retirer la ligne PATH de ~/.profile si nécessaire."
+    lsshm_info 'Note: LSSHM does not modify your SSH configuration on uninstall.'
+    lsshm_info 'Remember to remove the PATH line from ~/.profile if necessary.'
 }
 
 # ---------------------------------------------------------------------------
@@ -192,9 +204,9 @@ lsshm_cmd_server() {
         enable)  lsshm_server_enable ;;
         disable) lsshm_server_disable ;;
         config)  lsshm_server_config_show ;;
-        test)    lsshm_server_config_test && lsshm_ok "Configuration valide." ;;
+        test)    lsshm_server_config_test && lsshm_ok 'Configuration valid.' ;;
         logs)    lsshm_server_logs "${1:-40}" ;;
-        *) lsshm_error "Sous-commande server inconnue : $sub"; return 1 ;;
+        *) lsshm_error 'Unknown server subcommand: %s' "$sub"; return 1 ;;
     esac
 }
 
@@ -215,7 +227,7 @@ lsshm_cmd_access() {
         remove)  lsshm_access_remove "$user" "${1:-}" ;;
         disable) lsshm_access_disable "$user" "${1:-}" ;;
         repair)  lsshm_access_repair "$user" ;;
-        *) lsshm_error "Sous-commande access inconnue : $sub"; return 1 ;;
+        *) lsshm_error 'Unknown access subcommand: %s' "$sub"; return 1 ;;
     esac
 }
 
@@ -233,10 +245,10 @@ lsshm_cmd_key() {
                 list)   lsshm_agent_list ;;
                 add)    lsshm_agent_add "${1:-}" ;;
                 remove) lsshm_agent_remove "${1:-}" ;;
-                *) lsshm_error "Sous-commande agent inconnue : $asub"; return 1 ;;
+                *) lsshm_error 'Unknown agent subcommand: %s' "$asub"; return 1 ;;
             esac
             ;;
-        *) lsshm_error "Sous-commande key inconnue : $sub"; return 1 ;;
+        *) lsshm_error 'Unknown key subcommand: %s' "$sub"; return 1 ;;
     esac
 }
 
@@ -251,7 +263,7 @@ lsshm_cmd_host() {
         connect)   lsshm_hosts_connect "${1:-}" ;;
         copy-key)  lsshm_hosts_copy_key "${1:-}" ;;
         revoke-key) lsshm_hosts_revoke_key "${1:-}" ;;
-        *) lsshm_error "Sous-commande host inconnue : $sub"; return 1 ;;
+        *) lsshm_error 'Unknown host subcommand: %s' "$sub"; return 1 ;;
     esac
 }
 
@@ -265,6 +277,8 @@ lsshm_main() {
         case "$1" in
             --user) LSSHM_TARGET_USER="${2:-}"; shift 2 || shift ;;
             --user=*) LSSHM_TARGET_USER="${1#*=}"; shift ;;
+            --lang|--language) LSSHM_LANG_OVERRIDE="${2:-}"; shift 2 || shift ;;
+            --lang=*|--language=*) LSSHM_LANG_OVERRIDE="${1#*=}"; shift ;;
             --ui) force_ui=1; shift ;;
             -y|--yes) LSSHM_ASSUME_YES=1; shift ;;
             --no-color) LSSHM_NO_COLOR=1; shift ;;
@@ -291,6 +305,19 @@ lsshm_main() {
         *) lsshm_resolve_target_user ;;
     esac
 
+    # First interactive run without a stored language: offer to choose one
+    # (preselecting the detected system language) and remember it.
+    # Skip when --lang already forced a language for this invocation.
+    case "$cmd" in
+        menu|ui)
+            if ! lsshm_i18n_configured \
+                && [ -z "${LSSHM_LANG_OVERRIDE:-}" ] \
+                && lsshm_is_interactive; then
+                lsshm_i18n_choose
+            fi
+            ;;
+    esac
+
     case "$cmd" in
         menu)
             lsshm_update_check || true
@@ -315,7 +342,7 @@ lsshm_main() {
         version) printf '%s v%s\n' "$LSSHM_NAME" "$LSSHM_VERSION" ;;
         help|--help|-h) lsshm_usage ;;
         *)
-            lsshm_error "Commande inconnue : $cmd"
+            lsshm_error 'Unknown command: %s' "$cmd"
             lsshm_usage
             return 1
             ;;

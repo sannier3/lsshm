@@ -80,16 +80,14 @@ lsshm_detect_ssh_service() {
 }
 
 lsshm_platform_summary() {
-    cat <<EOF
-Distribution        : $LSSHM_OS_NAME
-Identifiant         : $LSSHM_OS_ID ${LSSHM_OS_VERSION:+($LSSHM_OS_VERSION)}
-Gestionnaire paquet : $LSSHM_PKG_MGR
-Gestionnaire service: $LSSHM_SVC_MGR
-systemd             : $([ "$LSSHM_HAS_SYSTEMD" = 1 ] && echo présent || echo absent)
-Virtualisation      : $LSSHM_VIRT
-Binaire sshd        : ${LSSHM_SSHD_BIN:-non détecté}
-Service SSH         : $LSSHM_SSH_SERVICE
-EOF
+    lsshm_out 'Distribution        : %s' "$LSSHM_OS_NAME"
+    lsshm_out 'Identifier          : %s' "$LSSHM_OS_ID ${LSSHM_OS_VERSION:+($LSSHM_OS_VERSION)}"
+    lsshm_out 'Package manager     : %s' "$LSSHM_PKG_MGR"
+    lsshm_out 'Service manager     : %s' "$LSSHM_SVC_MGR"
+    lsshm_out 'systemd             : %s' "$([ "$LSSHM_HAS_SYSTEMD" = 1 ] && lsshm_t present || lsshm_t absent)"
+    lsshm_out 'Virtualization      : %s' "$LSSHM_VIRT"
+    lsshm_out 'sshd binary         : %s' "${LSSHM_SSHD_BIN:-$(lsshm_t 'not detected')}"
+    lsshm_out 'SSH service         : %s' "$LSSHM_SSH_SERVICE"
 }
 
 # Is the current distribution supported for full management in this version?
