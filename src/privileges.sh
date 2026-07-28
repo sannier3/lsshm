@@ -8,9 +8,13 @@ lsshm_init_privileges() {
     LSSHM_IS_ROOT=0
     [ "$LSSHM_EUID" = "0" ] && LSSHM_IS_ROOT=1
 
-    # The user whose personal SSH files should be managed. When invoked through
-    # sudo we must not silently manage root's keys.
+    # Default target for personal SSH files until resolve_target_user runs:
+    # sudo → original user; direct root → root; otherwise the current user.
     LSSHM_CALLING_USER="${LSSHM_TARGET_USER:-${SUDO_USER:-${USER:-$(id -un)}}}"
+    if [ -z "${LSSHM_TARGET_USER:-}" ] && [ "$LSSHM_IS_ROOT" = "1" ] \
+        && { [ -z "${SUDO_USER:-}" ] || [ "$SUDO_USER" = "root" ]; }; then
+        LSSHM_CALLING_USER="root"
+    fi
 
     if lsshm_have sudo && [ "$LSSHM_IS_ROOT" = "0" ]; then
         LSSHM_SUDO="sudo"
@@ -233,43 +237,47 @@ lsshm_resolve_target_user() {
         return 0
     fi
 
-    # Non-interactive: prefer the original sudo user when present.
+    # Non-interactive defaults: sudo → calling user; direct root → root.
     if ! lsshm_is_interactive; then
-        if [ "$LSSHM_IS_ROOT" = "1" ] && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
-            LSSHM_CALLING_USER="$SUDO_USER"
+        if [ "$LSSHM_IS_ROOT" = "1" ]; then
+            if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+                LSSHM_CALLING_USER="$SUDO_USER"
+            else
+                LSSHM_CALLING_USER="root"
+            fi
         fi
         return 0
     fi
 
-    # Interactive root (sudo or direct login): choose the managed user.
+    # Interactive privileged session: pick whose personal SSH files to manage.
     if [ "$LSSHM_IS_ROOT" = "1" ]; then
         if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+            # Elevated via sudo: preselect the calling user; option 2 can pick
+            # root or any other account.
             printf '\n'; lsshm_out '%s is running with sudo.' "$LSSHM_NAME"
             lsshm_out 'Calling user   : %s' "$SUDO_USER"
             lsshm_out 'Privileged user: root'; printf '\n'
             lsshm_out 'Whose personal SSH files should be managed?'
             lsshm_out '  1. %s (recommended)' "$SUDO_USER"
-            lsshm_out '  2. root'
-            lsshm_out '  3. Choose another user'
+            lsshm_out '  2. Choose another user'
             local choice=""
             choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '1' || true)"
             case "$choice" in
-                2) lsshm_set_target_user "root" || LSSHM_CALLING_USER="root" ;;
-                3) lsshm_pick_target_user "$SUDO_USER" || LSSHM_CALLING_USER="$SUDO_USER" ;;
+                2) lsshm_pick_target_user "$SUDO_USER" || LSSHM_CALLING_USER="$SUDO_USER" ;;
                 *) lsshm_set_target_user "$SUDO_USER" || LSSHM_CALLING_USER="$SUDO_USER" ;;
             esac
         else
-            # Direct root session (Debian LXC, console root, etc.).
+            # Direct root login: preselect root.
             printf '\n'; lsshm_out '%s is running as root.' "$LSSHM_NAME"
             lsshm_out "You can manage another user's SSH (keys, access, hosts)."; printf '\n'
             lsshm_out 'Whose personal SSH files should be managed?'
-            lsshm_out '  1. root'
+            lsshm_out '  1. %s (recommended)' "root"
             lsshm_out '  2. Choose another user'
             local choice=""
-            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '2' || true)"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '1' || true)"
             case "$choice" in
-                1) lsshm_set_target_user "root" || true ;;
-                *) lsshm_pick_target_user "root" || lsshm_set_target_user "root" || true ;;
+                2) lsshm_pick_target_user "root" || lsshm_set_target_user "root" || true ;;
+                *) lsshm_set_target_user "root" || true ;;
             esac
         fi
     fi

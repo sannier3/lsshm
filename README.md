@@ -151,7 +151,7 @@ Global options: `--user NAME`, `--lang CODE`, `-y`, `--no-color`, `-h`.
 
 ### Administer another user (root / Debian)
 
-As **root** (console, LXC, or `sudo`), LSSHM asks which user to manage for personal SSH files (`~/.ssh`: keys, `authorized_keys`, `config`). The system SSH server is still managed as root.
+As **root** (console, LXC, or `sudo`), LSSHM asks which user to manage for personal SSH files (`~/.ssh`: keys, `authorized_keys`, `config`). A direct root session preselects **root**; a `sudo` session preselects the **calling user** (option 2 lets you pick another account, including root). The system SSH server is still managed as root.
 
 ```bash
 sudo lsshm
