@@ -63,7 +63,7 @@ lsshm_sudo_ensure() {
         return 0
     fi
     if [ -z "${LSSHM_SUDO:-}" ]; then
-        lsshm_error "Cette opération nécessite les privilèges root, mais sudo est introuvable."
+        lsshm_error 'This operation requires root privileges, but sudo was not found.'
         return 1
     fi
     if lsshm_sudo_ready; then
@@ -71,15 +71,15 @@ lsshm_sudo_ensure() {
         return 0
     fi
     if ! lsshm_is_interactive || [ ! -t 0 ]; then
-        lsshm_error "Authentification sudo requise (session non interactive)."
+        lsshm_error 'sudo authentication required (non-interactive session).'
         return 1
     fi
-    lsshm_note "Authentification administrateur (sudo) — une seule fois pour cette session."
+    lsshm_note 'Administrator authentication (sudo) — once for this session.'
     if sudo -v; then
         LSSHM_SUDO_PRIMED=1
         return 0
     fi
-    lsshm_error "Échec de l’authentification sudo."
+    lsshm_error 'sudo authentication failed.'
     return 1
 }
 
@@ -98,7 +98,7 @@ lsshm_run_privileged() {
             sudo "$@"
         fi
     else
-        lsshm_error "Cette opération nécessite les privilèges root, mais sudo est introuvable."
+        lsshm_error 'This operation requires root privileges, but sudo was not found.'
         return 1
     fi
 }
@@ -117,7 +117,7 @@ lsshm_run_privileged_sh() {
             sudo sh -c "$script"
         fi
     else
-        lsshm_error "Cette opération nécessite les privilèges root, mais sudo est introuvable."
+        lsshm_error 'This operation requires root privileges, but sudo was not found.'
         return 1
     fi
 }
@@ -129,7 +129,7 @@ lsshm_can_elevate() {
 
 lsshm_require_root() {
     if ! lsshm_can_elevate; then
-        lsshm_die "Opération privilégiée impossible: exécutez LSSHM en root ou installez sudo."
+        lsshm_die 'Privileged operation not possible: run LSSHM as root or install sudo.'
     fi
 }
 
@@ -137,16 +137,16 @@ lsshm_require_root() {
 lsshm_set_target_user() {
     local user="$1"
     if [ -z "$user" ]; then
-        lsshm_error "Nom d’utilisateur vide."
+        lsshm_error 'Empty username.'
         return 1
     fi
     if ! lsshm_user_exists "$user"; then
-        lsshm_error "Utilisateur inconnu : $user"
+        lsshm_error 'Unknown user: %s' "$user"
         return 1
     fi
     LSSHM_CALLING_USER="$user"
     LSSHM_TARGET_USER="$user"
-    lsshm_ok "Utilisateur administré : $LSSHM_CALLING_USER ($(lsshm_user_home "$LSSHM_CALLING_USER")/.ssh)"
+    lsshm_ok 'Managed user: %s (%s/.ssh)' "$LSSHM_CALLING_USER" "$(lsshm_user_home "$LSSHM_CALLING_USER")"
 }
 
 # Ensure ~/.ssh exists with correct ownership for a target user (root admin case).
@@ -191,7 +191,8 @@ lsshm_pick_target_user() {
 
     user_list="$(lsshm_users_list 2>/dev/null)" || user_list=""
 
-    printf '\nUtilisateurs locaux disponibles :\n' >&2
+    printf '\n' >&2
+    lsshm_out 'Available local users:' >&2
     while IFS=: read -r name uid home || [ -n "$name" ]; do
         [ -n "$name" ] || continue
         i=$((i + 1))
@@ -202,17 +203,17 @@ $user_list
 EOF
 
     if [ "$i" -eq 0 ]; then
-        lsshm_error "Aucun utilisateur local détecté."
+        lsshm_error 'No local user detected.'
         return 1
     fi
 
     # || true: under set -e, a failed prompt inside $(...) must not abort LSSHM.
-    choice="$(lsshm_prompt "Utilisateur à administrer (numéro ou nom)" "$default" || true)"
+    choice="$(lsshm_prompt "$(lsshm_t 'User to manage (number or name)')" "$default" || true)"
     [ -n "$choice" ] || return 1
 
     if [[ "$choice" =~ ^[0-9]+$ ]]; then
         if [ "$choice" -lt 1 ] || [ "$choice" -gt "${#names[@]}" ]; then
-            lsshm_error "Numéro hors plage (1-${#names[@]})."
+            lsshm_error 'Number out of range (1-%s).' "${#names[@]}"
             return 1
         fi
         choice="${names[$((choice - 1))]}"
@@ -226,7 +227,7 @@ lsshm_resolve_target_user() {
     # Explicit --user always wins.
     if [ -n "${LSSHM_TARGET_USER:-}" ]; then
         if ! lsshm_user_exists "$LSSHM_TARGET_USER"; then
-            lsshm_die "Utilisateur inconnu : $LSSHM_TARGET_USER"
+            lsshm_die 'Unknown user: %s' "$LSSHM_TARGET_USER"
         fi
         LSSHM_CALLING_USER="$LSSHM_TARGET_USER"
         return 0
@@ -243,15 +244,15 @@ lsshm_resolve_target_user() {
     # Interactive root (sudo or direct login): choose the managed user.
     if [ "$LSSHM_IS_ROOT" = "1" ]; then
         if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
-            printf '\n%s est exécuté avec sudo.\n' "$LSSHM_NAME"
-            printf 'Utilisateur appelant  : %s\n' "$SUDO_USER"
-            printf 'Utilisateur privilégié: root\n\n'
-            printf 'Les fichiers SSH personnels de quel utilisateur faut-il gérer ?\n'
-            printf '  1. %s (recommandé)\n' "$SUDO_USER"
-            printf '  2. root\n'
-            printf '  3. Choisir un autre utilisateur\n'
+            printf '\n'; lsshm_out '%s is running with sudo.' "$LSSHM_NAME"
+            lsshm_out 'Calling user   : %s' "$SUDO_USER"
+            lsshm_out 'Privileged user: root'; printf '\n'
+            lsshm_out 'Whose personal SSH files should be managed?'
+            lsshm_out '  1. %s (recommended)' "$SUDO_USER"
+            lsshm_out '  2. root'
+            lsshm_out '  3. Choose another user'
             local choice=""
-            choice="$(lsshm_prompt 'Choix' '1' || true)"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '1' || true)"
             case "$choice" in
                 2) lsshm_set_target_user "root" || LSSHM_CALLING_USER="root" ;;
                 3) lsshm_pick_target_user "$SUDO_USER" || LSSHM_CALLING_USER="$SUDO_USER" ;;
@@ -259,13 +260,13 @@ lsshm_resolve_target_user() {
             esac
         else
             # Direct root session (Debian LXC, console root, etc.).
-            printf '\n%s est exécuté en root.\n' "$LSSHM_NAME"
-            printf 'Vous pouvez administrer le SSH d’un autre utilisateur (clés, accès, hosts).\n\n'
-            printf 'Les fichiers SSH personnels de quel utilisateur faut-il gérer ?\n'
-            printf '  1. root\n'
-            printf '  2. Choisir un autre utilisateur\n'
+            printf '\n'; lsshm_out '%s is running as root.' "$LSSHM_NAME"
+            lsshm_out "You can manage another user's SSH (keys, access, hosts)."; printf '\n'
+            lsshm_out 'Whose personal SSH files should be managed?'
+            lsshm_out '  1. root'
+            lsshm_out '  2. Choose another user'
             local choice=""
-            choice="$(lsshm_prompt 'Choix' '2' || true)"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '2' || true)"
             case "$choice" in
                 1) lsshm_set_target_user "root" || true ;;
                 *) lsshm_pick_target_user "root" || lsshm_set_target_user "root" || true ;;

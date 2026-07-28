@@ -52,7 +52,7 @@ assert_false() {
 # Source the library modules (definitions only; no dispatch).
 lsshm_source_all() {
     local m
-    for m in common.sh platform.sh privileges.sh backup.sh server.sh \
+    for m in common.sh i18n.sh platform.sh privileges.sh backup.sh server.sh \
              server_config.sh rollback.sh users.sh authorized_keys.sh \
              local_keys.sh ssh_agent.sh hosts.sh known_hosts.sh logs.sh \
              audit.sh updater.sh cli.sh dialog.sh main.sh; do
@@ -60,6 +60,7 @@ lsshm_source_all() {
         . "$SRC_DIR/$m"
     done
     lsshm_init_paths
+    lsshm_i18n_init
     # shellcheck disable=SC2034  # consumed by lsshm_init_colors
     LSSHM_NO_COLOR=1
     lsshm_init_colors

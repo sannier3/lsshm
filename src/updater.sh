@@ -16,15 +16,18 @@ EOF
 lsshm_config_load() {
     LSSHM_CFG_UPDATE_CHECK="daily"
     LSSHM_CFG_UPDATE_CHANNEL="stable"
+    LSSHM_CFG_LANG=""
     [ -r "$LSSHM_CONFIG_FILE" ] || return 0
     local line key val
     while IFS= read -r line; do
         case "$line" in ''|'#'*) continue ;; esac
         key="${line%%=*}"; val="${line#*=}"
         key="$(printf '%s' "$key" | tr -d '[:space:]')"
+        val="$(printf '%s' "$val" | tr -d '[:space:]')"
         case "$key" in
             update_check)   LSSHM_CFG_UPDATE_CHECK="$val" ;;
             update_channel) LSSHM_CFG_UPDATE_CHANNEL="$val" ;;
+            language)       LSSHM_CFG_LANG="$val" ;;
         esac
     done <"$LSSHM_CONFIG_FILE"
 }
@@ -59,7 +62,7 @@ lsshm_download() {
     elif lsshm_have wget; then
         wget -qO "$out" "$url"
     else
-        lsshm_error "Ni curl ni wget disponibles pour le téléchargement."
+        lsshm_error 'Neither curl nor wget available for download.'
         return 1
     fi
 }
@@ -111,10 +114,12 @@ lsshm_update_check() {
     local remote; remote="$(lsshm_remote_version)"
     [ -n "$remote" ] || return 0
     if lsshm_version_gt "$remote" "$LSSHM_VERSION"; then
-        printf '\nVersion installée : %s\n' "$LSSHM_VERSION"
-        printf 'Version disponible : %s\n\n' "$remote"
-        printf 'Une mise à jour est disponible.\n'
-        if lsshm_confirm "Installer maintenant ?" no; then
+        printf '\n'
+        lsshm_out 'Installed version: %s' "$LSSHM_VERSION"
+        lsshm_out 'Available version: %s' "$remote"
+        printf '\n'
+        lsshm_out 'An update is available.'
+        if lsshm_confirm "$(lsshm_t 'Install now?')" no; then
             lsshm_update_run
         fi
     fi
@@ -126,38 +131,38 @@ lsshm_update_run() {
     lsshm_ensure_dirs
     local target="$LSSHM_INSTALL_TARGET"
     if [ ! -f "$target" ]; then
-        lsshm_warn "LSSHM ne semble pas installé dans $target."
-        lsshm_info "Utilisez : curl -fsSL $LSSHM_REPO_RAW/lsshm.sh | bash -s -- install"
+        lsshm_warn 'LSSHM does not seem to be installed in %s.' "$target"
+        lsshm_info 'Use: curl -fsSL %s/lsshm.sh | bash -s -- install' "$LSSHM_REPO_RAW"
         return 1
     fi
 
     local remote; remote="$(lsshm_remote_version)"
-    lsshm_info "Version installée : $LSSHM_VERSION"
-    lsshm_info "Version distante  : ${remote:-inconnue}"
+    lsshm_info 'Installed version: %s' "$LSSHM_VERSION"
+    lsshm_info 'Remote version : %s' "${remote:-$(lsshm_t 'unknown')}"
 
     # 1. Download to a temporary file.
     local tmp; tmp="$(lsshm_mktemp)"
-    lsshm_info "Téléchargement de la nouvelle version..."
+    lsshm_info 'Downloading the new version...'
     if ! lsshm_download "$LSSHM_REPO_RAW/lsshm.sh" "$tmp"; then
-        lsshm_error "Échec du téléchargement."
+        lsshm_error 'Download failed.'
         return 1
     fi
 
     # 2. Validate syntax with bash -n.
     if ! bash -n "$tmp"; then
-        lsshm_error "Le script téléchargé contient des erreurs de syntaxe. Abandon."
+        lsshm_error 'The downloaded script has syntax errors. Aborting.'
         return 1
     fi
 
     # 3. Verify SHA-256 against the published SHA256SUMS.
     if ! lsshm_update_verify_checksum "$tmp"; then
-        lsshm_error "Vérification SHA-256 échouée. Abandon."
+        lsshm_error 'SHA-256 verification failed. Aborting.'
         return 1
     fi
 
     # 4. Sanity check: the new file must identify itself as LSSHM.
     if ! grep -q "LSSHM" "$tmp"; then
-        lsshm_error "Le fichier téléchargé ne ressemble pas à LSSHM. Abandon."
+        lsshm_error 'The downloaded file does not look like LSSHM. Aborting.'
         return 1
     fi
 
@@ -165,10 +170,10 @@ lsshm_update_run() {
     cp -a "$target" "$target.prev" 2>/dev/null || true
     chmod +x "$tmp"
     if install -m 0755 "$tmp" "$target"; then
-        lsshm_ok "Mise à jour installée. Version précédente conservée : $target.prev"
-        lsshm_info "Utilisez 'lsshm update rollback' pour revenir en arrière."
+        lsshm_ok 'Update installed. Previous version kept: %s' "$target.prev"
+        lsshm_info "Use 'lsshm update rollback' to revert."
     else
-        lsshm_error "Échec du remplacement du fichier."
+        lsshm_error 'File replacement failed.'
         return 1
     fi
 }
@@ -177,12 +182,12 @@ lsshm_update_run() {
 lsshm_update_verify_checksum() {
     local file="$1"
     if [ ! -f "$file" ]; then
-        lsshm_error "Fichier à vérifier introuvable."
+        lsshm_error 'File to verify not found.'
         return 1
     fi
     local sums; sums="$(lsshm_mktemp)"
     if ! lsshm_download "$LSSHM_REPO_RAW/SHA256SUMS" "$sums" 2>/dev/null; then
-        lsshm_error "SHA256SUMS indisponible : vérification impossible (abandon)."
+        lsshm_error 'SHA256SUMS unavailable: cannot verify (aborting).'
         return 1
     fi
     local expected actual
@@ -195,7 +200,7 @@ lsshm_update_verify_checksum() {
         }
     ' "$sums")"
     if [ -z "$expected" ]; then
-        lsshm_error "Empreinte lsshm.sh absente de SHA256SUMS (abandon)."
+        lsshm_error 'lsshm.sh checksum missing from SHA256SUMS (aborting).'
         return 1
     fi
     if lsshm_have sha256sum; then
@@ -203,30 +208,30 @@ lsshm_update_verify_checksum() {
     elif lsshm_have shasum; then
         actual="$(shasum -a 256 "$file" | awk '{print $1}')"
     else
-        lsshm_error "Aucun outil SHA-256 (sha256sum/shasum) : vérification impossible (abandon)."
+        lsshm_error 'No SHA-256 tool (sha256sum/shasum): cannot verify (aborting).'
         return 1
     fi
     if [ "$expected" != "$actual" ]; then
-        lsshm_error "Empreinte SHA-256 incorrecte."
-        lsshm_error "  attendu : $expected"
-        lsshm_error "  obtenu  : $actual"
+        lsshm_error 'Incorrect SHA-256 checksum.'
+        lsshm_error '  expected: %s' "$expected"
+        lsshm_error '  actual:   %s' "$actual"
         return 1
     fi
-    lsshm_ok "Empreinte SHA-256 vérifiée."
+    lsshm_ok 'SHA-256 checksum verified.'
     return 0
 }
 
 lsshm_update_rollback() {
     local target="$LSSHM_INSTALL_TARGET"
     if [ ! -f "$target.prev" ]; then
-        lsshm_error "Aucune version précédente disponible ($target.prev)."
+        lsshm_error 'No previous version available (%s).' "$target.prev"
         return 1
     fi
-    lsshm_confirm "Restaurer la version précédente de LSSHM ?" no || { lsshm_info "Annulé."; return 0; }
+    lsshm_confirm "$(lsshm_t 'Restore the previous version of LSSHM?')" no || { lsshm_info 'Cancelled.'; return 0; }
     if install -m 0755 "$target.prev" "$target"; then
-        lsshm_ok "Version précédente restaurée."
+        lsshm_ok 'Previous version restored.'
     else
-        lsshm_error "Échec de la restauration."
+        lsshm_error 'Restore failed.'
         return 1
     fi
 }

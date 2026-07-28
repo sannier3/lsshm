@@ -4,10 +4,10 @@
 # =============================================================================
 # This downloads the single-file lsshm.sh and runs its "install" command.
 # You can also install directly with:
-#   curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
+#   curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- install
 set -euo pipefail
 
-REPO_RAW="${LSSHM_REPO_RAW:-https://raw.githubusercontent.com/sannier3/lsshm/main}"
+REPO_RAW="${LSSHM_REPO_RAW:-https://raw.githubusercontent.com/sannier3/lsshm/preview}"
 
 # If run from a checkout that already contains lsshm.sh, use it directly.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

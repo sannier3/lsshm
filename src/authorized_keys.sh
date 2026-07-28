@@ -55,12 +55,13 @@ lsshm_access_classify_line() {
 lsshm_access_list() {
     local user="${1:-$LSSHM_CALLING_USER}"
     local file; file="$(lsshm_access_file "$user")"
-    printf 'Utilisateur : %s\n' "$user"
-    printf 'Fichier     : %s\n\n' "$file"
+    lsshm_out 'User : %s' "$user"
+    lsshm_out 'File : %s' "$file"
+    printf '\n'
 
     local content; content="$(lsshm_access_read "$file")"
     if [ -z "$content" ]; then
-        lsshm_info "Aucune clé autorisée."
+        lsshm_info 'No authorized key.'
         return 0
     fi
 
@@ -83,21 +84,22 @@ lsshm_access_list() {
                 }
               }
             }')"
+        local nocomment; nocomment="$(lsshm_t 'no comment')"
         if [ "$_ak_kind" = "disabled" ]; then
-            printf '%d. [DÉSACTIVÉE] %s\n' "$i" "${comment:-sans commentaire}"
+            printf '%d. [%s] %s\n' "$i" "$(lsshm_t 'DISABLED')" "${comment:-$nocomment}"
         else
-            printf '%d. %s\n' "$i" "${comment:-sans commentaire}"
+            printf '%d. %s\n' "$i" "${comment:-$nocomment}"
         fi
-        printf '   Type       : %s (%s bits)\n' "${type:-?}" "${bits:-?}"
-        printf '   Empreinte  : %s\n' "${fp:-inconnue}"
+        lsshm_out '   Type        : %s (%s bits)' "${type:-?}" "${bits:-?}"
+        lsshm_out '   Fingerprint : %s' "${fp:-$(lsshm_t 'unknown')}"
         case "$_ak_keyline" in
-            *from=*)       printf '   Restriction : %s\n' "$(printf '%s' "$_ak_keyline" | grep -o 'from="[^"]*"')" ;;
+            *from=*)       lsshm_out '   Restriction : %s' "$(printf '%s' "$_ak_keyline" | grep -o 'from="[^"]*"')" ;;
         esac
         case "$_ak_keyline" in
-            *command=*)    printf '   Commande    : %s\n' "$(printf '%s' "$_ak_keyline" | grep -o 'command="[^"]*"')" ;;
+            *command=*)    lsshm_out '   Command     : %s' "$(printf '%s' "$_ak_keyline" | grep -o 'command="[^"]*"')" ;;
         esac
         case "$_ak_keyline" in
-            *no-port-forwarding*) printf '   Transfert  : interdit\n' ;;
+            *no-port-forwarding*) lsshm_out '   Forwarding  : forbidden' ;;
         esac
     done <<EOF
 $content
@@ -138,7 +140,7 @@ lsshm_access_add() {
     local keyline="${2:-}"
     if [ -z "$keyline" ]; then
         if lsshm_is_interactive; then
-            printf 'Collez la clé publique (une ligne), puis Entrée :\n'
+            lsshm_out 'Paste the public key (one line), then Enter:'
             read -r keyline </dev/tty || keyline=""
         fi
     fi
@@ -146,11 +148,11 @@ lsshm_access_add() {
     if [ -f "$keyline" ]; then
         keyline="$(cat "$keyline")"
     fi
-    [ -n "$keyline" ] || { lsshm_error "Aucune clé fournie."; return 1; }
+    [ -n "$keyline" ] || { lsshm_error 'No key provided.'; return 1; }
 
     # Validate that it parses as a key.
     if ! lsshm_access_fingerprint_line "$keyline" >/dev/null; then
-        lsshm_error "La clé fournie n'est pas une clé publique valide."
+        lsshm_error 'The provided key is not a valid public key.'
         return 1
     fi
 
@@ -168,10 +170,10 @@ lsshm_access_add() {
         efp="$(lsshm_access_fingerprint_line "$_ak_keyline" | awk '{print $2}')"
         if [ -n "$efp" ] && [ "$efp" = "$newfp" ]; then
             if [ "$_ak_kind" = "disabled" ]; then
-                lsshm_warn "Cette clé existe déjà (désactivée, empreinte $efp)."
-                lsshm_info "Réactivez-la via « Désactiver / réactiver une clé »."
+                lsshm_warn 'This key already exists (disabled, fingerprint %s).' "$efp"
+                lsshm_info 'Re-enable it via the Disable / re-enable a key entry.'
             else
-                lsshm_warn "Cette clé est déjà autorisée (empreinte $efp)."
+                lsshm_warn 'This key is already authorized (fingerprint %s).' "$efp"
             fi
             return 0
         fi
@@ -179,7 +181,7 @@ lsshm_access_add() {
 
     printf '%s\n' "$keyline" >>"$tmp"
     lsshm_access_write "$user" "$file" "$tmp"
-    lsshm_ok "Clé ajoutée pour $user."
+    lsshm_ok 'Key added for %s.' "$user"
 }
 
 # Remove a key by fingerprint or by 1-based index (same numbering as list).
@@ -188,13 +190,13 @@ lsshm_access_remove() {
     local target="${2:-}"
     local file; file="$(lsshm_access_file "$user")"
     local content; content="$(lsshm_access_read "$file")"
-    [ -n "$content" ] || { lsshm_info "Aucune clé à supprimer."; return 0; }
+    [ -n "$content" ] || { lsshm_info 'No key to remove.'; return 0; }
 
     if [ -z "$target" ]; then
         lsshm_access_list "$user"
-        target="$(lsshm_prompt 'Empreinte SHA256 ou numéro à supprimer' '')"
+        target="$(lsshm_prompt "$(lsshm_t 'SHA256 fingerprint or number to remove')" '')"
     fi
-    [ -n "$target" ] || { lsshm_info "Annulé."; return 0; }
+    [ -n "$target" ] || { lsshm_info 'Cancelled.'; return 0; }
 
     lsshm_backup_authorized_keys "$user" >/dev/null 2>&1 || true
     local tmp; tmp="$(lsshm_mktemp)"
@@ -216,11 +218,11 @@ lsshm_access_remove() {
 $content
 EOF
     if [ "$removed" = "0" ]; then
-        lsshm_warn "Aucune clé correspondante trouvée."
+        lsshm_warn 'No matching key found.'
         return 1
     fi
     lsshm_access_write "$user" "$file" "$tmp"
-    lsshm_ok "Clé supprimée pour $user."
+    lsshm_ok 'Key removed for %s.' "$user"
 }
 
 # Repair ownership and permissions of the user's .ssh directory.
@@ -232,7 +234,7 @@ lsshm_access_repair() {
     uid="$(id -u "$user" 2>/dev/null || echo 0)"
     gid="$(id -g "$user" 2>/dev/null || echo 0)"
 
-    [ -d "$ssh_dir" ] || { lsshm_warn "$ssh_dir n'existe pas."; return 0; }
+    [ -d "$ssh_dir" ] || { lsshm_warn '%s does not exist.' "$ssh_dir"; return 0; }
 
     local runner=""
     [ -w "$ssh_dir" ] || runner="lsshm_run_privileged"
@@ -248,8 +250,8 @@ lsshm_access_repair() {
             *)     $runner chmod 600 "$f" ;;
         esac
     done
-    lsshm_ok "Permissions réparées pour $user :"
-    lsshm_info "  .ssh 700, authorized_keys 600, clés privées 600, clés publiques 644"
+    lsshm_ok 'Permissions repaired for %s:' "$user"
+    lsshm_info '  .ssh 700, authorized_keys 600, private keys 600, public keys 644'
 }
 
 # Temporarily disable or re-enable a key by fingerprint or index (same numbering as list).
@@ -258,13 +260,13 @@ lsshm_access_disable() {
     local target="${2:-}"
     local file; file="$(lsshm_access_file "$user")"
     local content; content="$(lsshm_access_read "$file")"
-    [ -n "$content" ] || { lsshm_info "Aucune clé à désactiver."; return 0; }
+    [ -n "$content" ] || { lsshm_info 'No key to disable.'; return 0; }
 
     if [ -z "$target" ]; then
         lsshm_access_list "$user"
-        target="$(lsshm_prompt 'Empreinte SHA256 ou numéro à désactiver/réactiver' '')"
+        target="$(lsshm_prompt "$(lsshm_t 'SHA256 fingerprint or number to disable/re-enable')" '')"
     fi
-    [ -n "$target" ] || { lsshm_info "Annulé."; return 0; }
+    [ -n "$target" ] || { lsshm_info 'Cancelled.'; return 0; }
 
     lsshm_backup_authorized_keys "$user" >/dev/null 2>&1 || true
     local tmp; tmp="$(lsshm_mktemp)"
@@ -291,11 +293,11 @@ lsshm_access_disable() {
 $content
 EOF
     if [ "$changed" = "0" ]; then
-        lsshm_warn "Aucune clé correspondante trouvée."
+        lsshm_warn 'No matching key found.'
         return 1
     fi
     lsshm_access_write "$user" "$file" "$tmp"
-    lsshm_ok "État de la clé mis à jour pour $user."
+    lsshm_ok 'Key state updated for %s.' "$user"
 }
 
 # Detect duplicate keys across the file.
@@ -303,13 +305,13 @@ lsshm_access_duplicates() {
     local user="${1:-$LSSHM_CALLING_USER}"
     local file; file="$(lsshm_access_file "$user")"
     local content; content="$(lsshm_access_read "$file")"
-    [ -n "$content" ] || { lsshm_info "Aucune clé."; return 0; }
+    [ -n "$content" ] || { lsshm_info 'No key.'; return 0; }
     local line fp
     printf '%s\n' "$content" | while IFS= read -r line; do
         case "$line" in ''|'#'*) continue ;; esac
         lsshm_access_fingerprint_line "$line" | awk '{print $2}'
     done | sort | uniq -d | while IFS= read -r fp; do
-        [ -n "$fp" ] && lsshm_warn "Doublon détecté : $fp"
+        [ -n "$fp" ] && lsshm_warn 'Duplicate detected: %s' "$fp"
     done
-    lsshm_ok "Analyse des doublons terminée."
+    lsshm_ok 'Duplicate analysis complete.'
 }

@@ -37,20 +37,20 @@ lsshm_backup_server_config() {
         [ -d /etc/ssh/sshd_config.d ] && printf '/etc/ssh/sshd_config.d\n'
     } >"$tmp"
     if [ ! -s "$tmp" ]; then
-        lsshm_warn "Aucune configuration serveur à sauvegarder."
+        lsshm_warn 'No server configuration to back up.'
         return 1
     fi
     if lsshm_run_privileged tar -czf "$archive" -T "$tmp" 2>/dev/null; then
         # When stdout is captured (rollback), emit only the path.
         # Interactively, show a human message instead.
         if [ -t 1 ]; then
-            lsshm_ok "Sauvegarde créée : $archive"
+            lsshm_ok 'Backup created: %s' "$archive"
         else
             printf '%s' "$archive"
         fi
         return 0
     fi
-    lsshm_error "Échec de la sauvegarde de la configuration serveur."
+    lsshm_error 'Server configuration backup failed.'
     return 1
 }
 
@@ -64,10 +64,10 @@ lsshm_backup_authorized_keys() {
 lsshm_backup_list() {
     lsshm_ensure_dirs
     if [ -z "$(ls -A "$LSSHM_BACKUP_DIR" 2>/dev/null)" ]; then
-        lsshm_info "Aucune sauvegarde enregistrée."
+        lsshm_info 'No backups recorded.'
         return 0
     fi
-    lsshm_info "Sauvegardes dans $LSSHM_BACKUP_DIR :"
+    lsshm_info 'Backups in %s:' "$LSSHM_BACKUP_DIR"
     local entry
     for entry in "$LSSHM_BACKUP_DIR"/*; do
         [ -e "$entry" ] || continue
@@ -82,14 +82,14 @@ lsshm_backup_restore_server() {
         # Allow passing just the basename.
         archive="$LSSHM_BACKUP_DIR/$archive"
     fi
-    [ -f "$archive" ] || lsshm_die "Archive introuvable : $1"
-    lsshm_warn "Restauration de la configuration serveur depuis : $archive"
-    lsshm_confirm "Confirmer la restauration ?" no || { lsshm_info "Annulé."; return 1; }
+    [ -f "$archive" ] || lsshm_die 'Backup archive not found: %s' "$1"
+    lsshm_warn 'Restoring server configuration from: %s' "$archive"
+    lsshm_confirm "$(lsshm_t 'Confirm the restore?')" no || { lsshm_info 'Cancelled.'; return 1; }
     if lsshm_run_privileged tar -xzf "$archive" -C / ; then
-        lsshm_ok "Configuration restaurée."
+        lsshm_ok 'Configuration restored.'
         lsshm_server_config_test && lsshm_server_reload
     else
-        lsshm_error "Échec de la restauration."
+        lsshm_error 'Restore failed.'
         return 1
     fi
 }
@@ -103,35 +103,33 @@ lsshm_backup_menu() {
         else
             clear 2>/dev/null || true
             lsshm_header
-            printf 'Sauvegarde et restauration\n\n'
-            cat <<EOF
-  1. Sauvegarder la configuration du serveur SSH
-  2. Sauvegarder les clés autorisées (authorized_keys)
-  3. Lister les sauvegardes
-  4. Restaurer une configuration serveur
-  5. Retour
-EOF
-            choice="$(lsshm_prompt 'Choix' '5' || true)"
+            lsshm_out 'Backup and restore'; printf '\n'
+            lsshm_out '  1. Back up the SSH server configuration'
+            lsshm_out '  2. Back up authorized keys (authorized_keys)'
+            lsshm_out '  3. List backups'
+            lsshm_out '  4. Restore a server configuration'
+            lsshm_out '  5. Back'
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '5' || true)"
         fi
         case "$choice" in
-            1) lsshm_ui_run "Sauvegarde serveur SSH" lsshm_backup_server_config ;;
-            2) lsshm_ui_run "Sauvegarde authorized_keys" lsshm_backup_authorized_keys "$LSSHM_CALLING_USER" ;;
-            3) lsshm_ui_run "Sauvegardes disponibles" lsshm_backup_list ;;
+            1) lsshm_ui_run "$(lsshm_t 'SSH server backup')" lsshm_backup_server_config ;;
+            2) lsshm_ui_run "$(lsshm_t 'authorized_keys backup')" lsshm_backup_authorized_keys "$LSSHM_CALLING_USER" ;;
+            3) lsshm_ui_run "$(lsshm_t 'Available backups')" lsshm_backup_list ;;
             4)
                 if lsshm_uses_dialog_ui; then
-                    lsshm_menu_try lsshm_ui_show "Sauvegardes" lsshm_backup_list
+                    lsshm_menu_try lsshm_ui_show "$(lsshm_t 'Backups')" lsshm_backup_list
                 else
                     lsshm_menu_try lsshm_backup_list
                 fi
                 local a=""
-                a="$(lsshm_prompt 'Nom de l’archive à restaurer' '' || true)"
+                a="$(lsshm_prompt "$(lsshm_t 'Archive name to restore')" '' || true)"
                 if [ -n "$a" ]; then
                     lsshm_menu_try lsshm_backup_restore_server "$a"
                 fi
                 lsshm_uses_dialog_ui || lsshm_pause
                 ;;
             5|q|Q) break ;;
-            *) lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+            *) lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done
 }

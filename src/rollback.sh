@@ -94,14 +94,14 @@ lsshm_apply_dangerous_change() {
     # Dangerous changes require a TTY so the operator can confirm from a second session.
     # -y may auto-confirm the initial consent, but never skips the rollback safety net.
     if ! lsshm_can_prompt_tty; then
-        lsshm_error "Changement sensible impossible sans terminal interactif : $description"
-        lsshm_info "Un TTY est requis pour confirmer que la nouvelle session SSH fonctionne."
+        lsshm_error 'Sensitive change not possible without an interactive terminal: %s' "$description"
+        lsshm_info 'A TTY is required to confirm the new SSH session works.'
         return 1
     fi
 
-    lsshm_warn "Changement sensible : $description"
-    if ! lsshm_confirm "Continuer avec une restauration automatique de sécurité ?" no; then
-        lsshm_info "Annulé."
+    lsshm_warn 'Sensitive change: %s' "$description"
+    if ! lsshm_confirm "$(lsshm_t 'Continue with an automatic safety rollback?')" no; then
+        lsshm_info 'Cancelled.'
         return 1
     fi
 
@@ -110,7 +110,7 @@ lsshm_apply_dangerous_change() {
 
     # 2. Apply the change (validates internally).
     if ! lsshm_managed_set "$key" "$value"; then
-        lsshm_error "Application annulée."
+        lsshm_error 'Change application cancelled.'
         return 1
     fi
 
@@ -125,35 +125,30 @@ lsshm_apply_dangerous_change() {
 
     # 5. Verify the port listens.
     if lsshm_server_port_listening; then
-        lsshm_ok "Le port SSH écoute."
+        lsshm_ok 'The SSH port is listening.'
     else
-        lsshm_warn "Impossible de confirmer que le port SSH écoute."
+        lsshm_warn 'Unable to confirm the SSH port is listening.'
     fi
 
     # 6. Ask for confirmation from a second session (never auto-kept via -y).
-    cat <<EOF
-
-La nouvelle configuration est active.
-
-Une restauration automatique aura lieu dans ${LSSHM_ROLLBACK_DELAY} secondes.
-
-Ouvrez une seconde connexion SSH avant de confirmer.
-
-  1. La nouvelle connexion fonctionne
-  2. Restaurer immédiatement
-EOF
-    local choice; choice="$(lsshm_prompt_tty 'Choix' '2')"
+    printf '\n'
+    lsshm_out 'The new configuration is active.'; printf '\n'
+    lsshm_out 'An automatic rollback will occur in %s seconds.' "$LSSHM_ROLLBACK_DELAY"; printf '\n'
+    lsshm_out 'Open a second SSH connection before confirming.'; printf '\n'
+    lsshm_out '  1. The new connection works'
+    lsshm_out '  2. Restore immediately'
+    local choice; choice="$(lsshm_prompt_tty "$(lsshm_t 'Choice')" '2')"
     case "$choice" in
         1)
             lsshm_rollback_cancel "$method" "$confirm_flag"
-            lsshm_ok "Restauration automatique annulée. Changement conservé."
+            lsshm_ok 'Automatic rollback cancelled. Change kept.'
             ;;
         *)
-            lsshm_warn "Restauration immédiate..."
+            lsshm_warn 'Restoring immediately...'
             lsshm_run_privileged tar -xzf "$archive" -C / 2>/dev/null || true
             lsshm_rollback_cancel "$method" "$confirm_flag"
             lsshm_server_reload || true
-            lsshm_ok "Configuration précédente restaurée."
+            lsshm_ok 'Previous configuration restored.'
             ;;
     esac
 }

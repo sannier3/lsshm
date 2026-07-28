@@ -7,7 +7,21 @@ LSSHM est un outil de gestion OpenSSH **local** : serveur SSH, accès entrants, 
 Interface CLI par défaut (sans dépendance) et interface `dialog` facultative.
 
 > [!WARNING]
-> LSSHM est en développement actif (v0.3.1). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+> LSSHM est en développement actif (v0.4.0). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+
+## Langues
+
+LSSHM est entièrement internationalisé. L'anglais est la langue par défaut ; le français et l'espagnol sont intégrés. À l'installation (et au premier lancement), LSSHM demande quelle langue utiliser, pré-sélectionnée selon la locale du système, puis mémorise le choix. Vous pouvez la changer à tout moment depuis le menu **Paramètres** ou par commande :
+
+```bash
+lsshm --lang fr        # Linux (en, fr, es)
+```
+
+```powershell
+.\lsshm.ps1 -Lang fr   # Windows (en, fr, es)
+```
+
+Les chaînes non traduites reviennent automatiquement à l'anglais.
 
 ## Positionnement
 
@@ -24,20 +38,17 @@ LSSHM gère quatre domaines distincts, visibles dans tous les menus :
 
 ### Linux
 
-Installe LSSHM dans `~/.local` et crée la commande `lsshm` :
+Installe LSSHM dans `~/.local`, crée la commande `lsshm`, et ajoute automatiquement `~/.local/bin` au PATH (`~/.profile`, et la session courante) :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- install
 ```
 
 Puis lancez :
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"   # une fois, dans le terminal actuel
 lsshm
 ```
-
-Les prochaines connexions SSH chargeront le PATH automatiquement (`~/.profile`).
 
 > Pas de `sudo` pour l'installation. Les privilèges root ne sont demandés que pour gérer le serveur SSH ou les fichiers système.
 
@@ -46,11 +57,11 @@ Les prochaines connexions SSH chargeront le PATH automatiquement (`~/.profile`).
 Téléchargez et lancez l'interface CLI PowerShell (mêmes menus et concepts que sous Linux) :
 
 ```powershell
-irm https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
+irm https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1
 ```
 
-Ou installation dans le profil utilisateur :
+Ou installation dans le profil utilisateur (ajoute automatiquement le répertoire d'installation au PATH utilisateur) :
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1 install
@@ -63,12 +74,14 @@ La gestion du serveur OpenSSH nécessite PowerShell **en administrateur**. Les c
 Pour **essayer** LSSHM ou lancer **une commande ponctuelle**, sans rien installer :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash              # menu
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status   # état
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- ui       # interface dialog
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash              # menu
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- status   # état
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- ui       # interface dialog
 ```
 
 C'est le **même fichier** qu'à l'installation ; le script est juste exécuté directement (retéléchargé à chaque `curl`).
+
+> Cette documentation cible la branche **preview**.
 
 ## Utilisation
 
@@ -134,7 +147,7 @@ lsshm host list|add
 lsshm host edit|delete|test|connect|copy-key|revoke-key NOM
 ```
 
-Options globales : `--user NOM`, `-y`, `--no-color`, `-h`.
+Options globales : `--user NOM`, `--lang CODE`, `-y`, `--no-color`, `-h`.
 
 ### Administrer un autre utilisateur (root / Debian)
 
@@ -155,8 +168,9 @@ lsshm --user jb key generate
 
 Vous pouvez aussi changer d’utilisateur dans **Accès**, **Clés** ou **Paramètres**.
 
-## Fonctionnalités v0.3.1
+## Fonctionnalités v0.4.0
 
+- Interface multilingue (anglais, français, espagnol) avec pré-sélection selon la locale
 - Détection Debian / dérivés, systemd, LXC
 - Installation et gestion du service OpenSSH Server
 - Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf`

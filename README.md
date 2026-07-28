@@ -7,7 +7,21 @@ LSSHM is a **local** OpenSSH management tool: SSH server, incoming access, outgo
 Default dependency-free CLI and optional `dialog` interface.
 
 > [!WARNING]
-> LSSHM is under active development (v0.3.1). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
+> LSSHM is under active development (v0.4.0). Incorrect SSH configuration can lock you out of the machine. LSSHM aims to reduce that risk through validation, backups, confirmations, and automatic rollback.
+
+## Languages
+
+LSSHM is fully internationalized. English is the default; French and Spanish are built in. At install time (and on first run) LSSHM asks which language to use, pre-selected from your system locale, and remembers the choice. Change it anytime from the **Settings** menu or per command:
+
+```bash
+lsshm --lang en        # Linux (en, fr, es)
+```
+
+```powershell
+.\lsshm.ps1 -Lang fr   # Windows (en, fr, es)
+```
+
+Untranslated strings automatically fall back to English.
 
 ## Scope
 
@@ -24,20 +38,17 @@ LSSHM manages four separate areas, visible in every menu:
 
 ### Linux
 
-Installs LSSHM into `~/.local` and creates the `lsshm` command:
+Installs LSSHM into `~/.local`, creates the `lsshm` command, and adds `~/.local/bin` to your PATH automatically (`~/.profile`, and the current session):
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- install
 ```
 
 Then run:
 
 ```bash
-export PATH="$HOME/.local/bin:$PATH"   # once, in the current terminal
 lsshm
 ```
-
-Future SSH sessions will load the PATH automatically (`~/.profile`).
 
 > No `sudo` required for installation. Root privileges are only requested to manage the SSH server or system files.
 
@@ -46,11 +57,11 @@ Future SSH sessions will load the PATH automatically (`~/.profile`).
 Download and run the PowerShell CLI (same menus and concepts as Linux):
 
 ```powershell
-irm https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
+irm https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1
 ```
 
-Or install into the user profile:
+Or install into the user profile (adds the install directory to the user PATH automatically):
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1 install
@@ -63,12 +74,14 @@ OpenSSH Server operations require an **elevated** PowerShell session. User keys 
 To **try** LSSHM or run a **one-off command** without installing anything:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash              # menu
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status   # status
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- ui       # dialog UI
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash              # menu
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- status   # status
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- ui       # dialog UI
 ```
 
 It is the **same file** as installation; the script is executed directly (re-downloaded on every `curl`).
+
+> This documentation targets the **preview** branch.
 
 ## Usage
 
@@ -134,7 +147,7 @@ lsshm host list|add
 lsshm host edit|delete|test|connect|copy-key|revoke-key NAME
 ```
 
-Global options: `--user NAME`, `-y`, `--no-color`, `-h`.
+Global options: `--user NAME`, `--lang CODE`, `-y`, `--no-color`, `-h`.
 
 ### Administer another user (root / Debian)
 
@@ -148,8 +161,9 @@ lsshm --user jb key generate
 
 You can also switch the target user from **Access**, **Keys**, or **Settings**.
 
-## Features (v0.3.1)
+## Features (v0.4.0)
 
+- Multilingual UI (English, French, Spanish) with locale-based pre-selection
 - Debian / derivatives, systemd, and LXC detection
 - OpenSSH Server installation and service management
 - Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf`

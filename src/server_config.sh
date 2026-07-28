@@ -15,14 +15,14 @@ LSSHM_MANAGED_HEADER="# Managed by LSSHM
 # sshd -t : validate configuration. Returns non-zero on error.
 lsshm_server_config_test() {
     if [ -z "${LSSHM_SSHD_BIN:-}" ]; then
-        lsshm_warn "Binaire sshd introuvable : validation impossible."
+        lsshm_warn 'sshd binary not found: validation not possible.'
         return 0
     fi
     local out
     if out="$(lsshm_run_privileged "$LSSHM_SSHD_BIN" -t 2>&1)"; then
         return 0
     fi
-    lsshm_error "sshd -t a signalé une erreur :"
+    lsshm_error 'sshd -t reported an error:'
     printf '%s\n' "$out" >&2
     return 1
 }
@@ -166,8 +166,8 @@ lsshm_managed_ensure_include() {
     # Warn if the main config has no Include for sshd_config.d.
     [ -r "$LSSHM_SSHD_CONFIG" ] || return 0
     if ! grep -Eqi '^[[:space:]]*Include[[:space:]]+.*sshd_config\.d' "$LSSHM_SSHD_CONFIG"; then
-        lsshm_warn "Le fichier principal n'inclut pas sshd_config.d/."
-        lsshm_warn "Le fichier géré par LSSHM pourrait être ignoré."
+        lsshm_warn 'The main config file does not include sshd_config.d/.'
+        lsshm_warn 'The file managed by LSSHM might be ignored.'
     fi
 }
 
@@ -191,9 +191,9 @@ lsshm_managed_set() {
     lsshm_managed_ensure_include
 
     if lsshm_config_defined_before_include "$key"; then
-        lsshm_warn "'$key' est défini dans $LSSHM_SSHD_CONFIG avant l'Include."
-        lsshm_warn "Cette valeur prévaudra sur le fichier géré par LSSHM."
-        if lsshm_confirm "Commenter cette définition dans le fichier principal ?" no; then
+        lsshm_warn "'%s' is defined in %s before the Include." "$key" "$LSSHM_SSHD_CONFIG"
+        lsshm_warn 'This value will take precedence over the file managed by LSSHM.'
+        if lsshm_confirm "$(lsshm_t 'Comment out this definition in the main file?')" no; then
             lsshm_config_comment_directive "$key"
         fi
     fi
@@ -222,12 +222,12 @@ lsshm_managed_set() {
     lsshm_server_config_invalidate_cache
 
     if ! lsshm_server_config_test; then
-        lsshm_error "Nouvelle configuration invalide : annulation."
+        lsshm_error 'New configuration invalid: rolling back.'
         lsshm_run_privileged install -m 0644 "$tmp" "$LSSHM_MANAGED_CONF" 2>/dev/null || true
         lsshm_server_config_invalidate_cache
         return 1
     fi
-    lsshm_ok "Directive appliquée : $key $value"
+    lsshm_ok 'Directive applied: %s %s' "$key" "$value"
 
     # Confirm the effective runtime value matches the intended choice.
     local eff_key eff_val norm_eff norm_want
@@ -244,8 +244,8 @@ lsshm_managed_set() {
                 ;;
         esac
         if [ "$norm_eff" != "$norm_want" ]; then
-            lsshm_warn "Valeur effective (sshd -T) : $eff_val"
-            lsshm_warn "Attendu : $value - une autre définition peut encore prévaloir."
+            lsshm_warn 'Effective value (sshd -T): %s' "$eff_val"
+            lsshm_warn 'Expected: %s - another definition may still take precedence.' "$value"
         fi
     fi
     return 0
@@ -269,86 +269,86 @@ lsshm_config_comment_directive() {
 
 lsshm_rootlogin_label() {
     case "$1" in
-        no)                   printf 'interdit' ;;
-        prohibit-password|without-password) printf 'clé uniquement' ;;
-        yes)                  printf 'clé ou mot de passe' ;;
-        forced-commands-only) printf 'commandes imposées' ;;
-        "")                   printf 'non défini' ;;
+        no)                   lsshm_t 'forbidden' ;;
+        prohibit-password|without-password) lsshm_t 'key only' ;;
+        yes)                  lsshm_t 'key or password' ;;
+        forced-commands-only) lsshm_t 'forced commands only' ;;
+        "")                   lsshm_t 'not set' ;;
         *)                    printf '%s' "$1" ;;
     esac
 }
 
 lsshm_set_root_login() {
     lsshm_header
-    printf 'Connexion SSH de root\n\n'
-    printf '  1. Interdire totalement root\n'
-    printf '  2. Autoriser root uniquement avec une clé\n'
-    printf '  3. Autoriser root avec une clé ou un mot de passe\n'
-    printf '  4. Autoriser root uniquement pour des commandes imposées\n\n'
-    printf 'Recommandation : autoriser root uniquement avec une clé,\n'
-    printf 'ou utiliser un utilisateur normal possédant sudo.\n\n'
-    local choice; choice="$(lsshm_prompt 'Choix' '2')"
+    lsshm_out 'SSH root login'; printf '\n'
+    lsshm_out '  1. Forbid root entirely'
+    lsshm_out '  2. Allow root with a key only'
+    lsshm_out '  3. Allow root with a key or a password'
+    lsshm_out '  4. Allow root only for forced commands'; printf '\n'
+    lsshm_out 'Recommendation: allow root with a key only,'
+    lsshm_out 'or use a normal user with sudo.'; printf '\n'
+    local choice; choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '2')"
     local value=""
     case "$choice" in
         1) value="no" ;;
         2) value="prohibit-password" ;;
         3) value="yes" ;;
         4) value="forced-commands-only" ;;
-        *) lsshm_info "Aucun changement."; return 0 ;;
+        *) lsshm_info 'No change.'; return 0 ;;
     esac
-    lsshm_apply_dangerous_change "PermitRootLogin" "$value" "modification de l'accès root"
+    lsshm_apply_dangerous_change "PermitRootLogin" "$value" "$(lsshm_t 'root access change')"
 }
 
 lsshm_set_password_auth() {
     local cur; cur="$(lsshm_server_config_effective_value passwordauthentication)"
-    lsshm_info "Authentification par mot de passe actuelle : $(lsshm_yesno_label "$cur")"
-    if lsshm_confirm "Autoriser l'authentification par mot de passe ?" no; then
+    lsshm_info 'Current password authentication: %s' "$(lsshm_yesno_label "$cur")"
+    if lsshm_confirm "$(lsshm_t 'Allow password authentication?')" no; then
         lsshm_managed_set "PasswordAuthentication" "yes" && lsshm_server_reload
     else
-        lsshm_warn "Désactiver les mots de passe peut vous verrouiller sans clé valide."
-        lsshm_apply_dangerous_change "PasswordAuthentication" "no" "désactivation des mots de passe"
+        lsshm_warn 'Disabling passwords may lock you out without a valid key.'
+        lsshm_apply_dangerous_change "PasswordAuthentication" "no" "$(lsshm_t 'disabling passwords')"
     fi
 }
 
 lsshm_set_pubkey_auth() {
-    if lsshm_confirm "Autoriser l'authentification par clé publique ?" yes; then
+    if lsshm_confirm "$(lsshm_t 'Allow public key authentication?')" yes; then
         lsshm_managed_set "PubkeyAuthentication" "yes" && lsshm_server_reload
     else
-        lsshm_warn "Désactiver l'authentification par clé peut vous verrouiller."
-        lsshm_apply_dangerous_change "PubkeyAuthentication" "no" "désactivation de l'authentification par clé"
+        lsshm_warn 'Disabling key authentication may lock you out.'
+        lsshm_apply_dangerous_change "PubkeyAuthentication" "no" "$(lsshm_t 'disabling key authentication')"
     fi
 }
 
 lsshm_set_port() {
     local cur; cur="$(lsshm_server_config_effective_value port)"; cur="${cur:-22}"
-    local port; port="$(lsshm_prompt 'Nouveau port SSH' "$cur")"
+    local port; port="$(lsshm_prompt "$(lsshm_t 'New SSH port')" "$cur")"
     case "$port" in
-        ''|*[!0-9]*) lsshm_error "Port invalide."; return 1 ;;
+        ''|*[!0-9]*) lsshm_error 'Invalid port.'; return 1 ;;
     esac
     if [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-        lsshm_error "Port hors plage (1-65535)."; return 1
+        lsshm_error 'Port out of range (1-65535).'; return 1
     fi
-    lsshm_warn "Vérifiez votre pare-feu avant de changer le port."
-    lsshm_apply_dangerous_change "Port" "$port" "changement du port"
+    lsshm_warn 'Check your firewall before changing the port.'
+    lsshm_apply_dangerous_change "Port" "$port" "$(lsshm_t 'port change')"
 }
 
 lsshm_set_allow_users() {
     local cur; cur="$(lsshm_server_config_effective_value allowusers)"
-    lsshm_info "AllowUsers actuel : ${cur:-non défini}"
-    local users; users="$(lsshm_prompt 'Utilisateurs autorisés (séparés par des espaces, vide = supprimer)' "$cur")"
+    lsshm_info 'Current AllowUsers: %s' "${cur:-$(lsshm_t 'not set')}"
+    local users; users="$(lsshm_prompt "$(lsshm_t 'Allowed users (space-separated, empty = remove)')" "$cur")"
     if [ -z "$users" ]; then
-        lsshm_info "Suppression de AllowUsers non gérée automatiquement (éditez le fichier géré)."
+        lsshm_info 'Removing AllowUsers is not handled automatically (edit the managed file).'
         return 0
     fi
-    lsshm_apply_dangerous_change "AllowUsers" "$users" "modification de AllowUsers"
+    lsshm_apply_dangerous_change "AllowUsers" "$users" "$(lsshm_t 'AllowUsers change')"
 }
 
 lsshm_set_allow_groups() {
     local cur; cur="$(lsshm_server_config_effective_value allowgroups)"
-    lsshm_info "AllowGroups actuel : ${cur:-non défini}"
-    local groups; groups="$(lsshm_prompt 'Groupes autorisés (séparés par des espaces)' "$cur")"
-    [ -z "$groups" ] && { lsshm_info "Aucun changement."; return 0; }
-    lsshm_apply_dangerous_change "AllowGroups" "$groups" "modification de AllowGroups"
+    lsshm_info 'Current AllowGroups: %s' "${cur:-$(lsshm_t 'not set')}"
+    local groups; groups="$(lsshm_prompt "$(lsshm_t 'Allowed groups (space-separated)')" "$cur")"
+    [ -z "$groups" ] && { lsshm_info 'No change.'; return 0; }
+    lsshm_apply_dangerous_change "AllowGroups" "$groups" "$(lsshm_t 'AllowGroups change')"
 }
 
 # Show the effective configuration (sshd -T) or a helpful message.
@@ -359,7 +359,7 @@ lsshm_server_config_show() {
     if [ -n "$dump" ]; then
         printf '%s\n' "$dump" | sort
     else
-        lsshm_warn "sshd -T indisponible. Fichiers de configuration détectés :"
+        lsshm_warn 'sshd -T unavailable. Detected configuration files:'
         lsshm_config_effective_files
     fi
 }

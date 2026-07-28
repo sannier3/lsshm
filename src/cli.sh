@@ -7,7 +7,7 @@
 # Must not prompt for sudo: uses cached/non-interactive sshd -T or file parse.
 lsshm_status_panel() {
     local active port root pass rootkeys userkeys hosts dump
-    if lsshm_server_is_installed && lsshm_server_is_active; then active="actif"; else active="inactif"; fi
+    if lsshm_server_is_installed && lsshm_server_is_active; then active="$(lsshm_t 'active')"; else active="$(lsshm_t 'inactive')"; fi
 
     # One dump (or none) for all status fields — never three sudo prompts.
     dump="$(lsshm_server_config_dump)" || dump=""
@@ -32,16 +32,14 @@ lsshm_status_panel() {
     fi
     hosts="$(lsshm_hosts_count)"
 
-    cat <<EOF
-Utilisateur administré : $LSSHM_CALLING_USER
-État du serveur SSH : $active
-Port : $port
-Accès root : $root
-Authentification par mot de passe : $pass
-Clés autorisées pour root : $rootkeys
-Clés privées de $LSSHM_CALLING_USER : $userkeys
-Machines distantes enregistrées : $hosts
-EOF
+    lsshm_out 'Managed user: %s' "$LSSHM_CALLING_USER"
+    lsshm_out 'SSH server status: %s' "$active"
+    lsshm_out 'Port: %s' "$port"
+    lsshm_out 'Root access: %s' "$root"
+    lsshm_out 'Password authentication: %s' "$pass"
+    lsshm_out 'Authorized keys for root: %s' "$rootkeys"
+    lsshm_out 'Private keys of %s: %s' "$LSSHM_CALLING_USER" "$userkeys"
+    lsshm_out 'Registered remote hosts: %s' "$hosts"
 }
 
 lsshm_cli_main() {
@@ -50,20 +48,18 @@ lsshm_cli_main() {
         clear 2>/dev/null || true
         lsshm_header
         lsshm_menu_try lsshm_status_panel
-        cat <<EOF
-
-1. Gérer le serveur SSH local
-2. Gérer les accès à cette machine
-3. Gérer mes clés SSH
-4. Gérer les machines distantes
-5. Consulter les connexions et journaux
-6. Effectuer un audit de sécurité
-7. Sauvegarder ou restaurer
-8. Paramètres de LSSHM
-9. Quitter
-EOF
+        printf '\n'
+        lsshm_out '1. Manage the local SSH server'
+        lsshm_out '2. Manage access to this machine'
+        lsshm_out '3. Manage my SSH keys'
+        lsshm_out '4. Manage remote hosts'
+        lsshm_out '5. View connections and logs'
+        lsshm_out '6. Run a security audit'
+        lsshm_out '7. Back up or restore'
+        lsshm_out '8. LSSHM settings'
+        lsshm_out '9. Quit'
         local choice=""
-        choice="$(lsshm_prompt 'Choix' '9' || true)"
+        choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '9' || true)"
         case "$choice" in
             1) lsshm_menu_try lsshm_cli_server_menu ;;
             2) lsshm_menu_try lsshm_cli_access_menu ;;
@@ -74,7 +70,7 @@ EOF
             7) lsshm_menu_try lsshm_backup_menu ;;
             8) lsshm_menu_try lsshm_settings_menu ;;
             9|q|Q) break ;;
-            *) lsshm_warn "Choix invalide." ; lsshm_pause ;;
+            *) lsshm_warn 'Invalid choice.' ; lsshm_pause ;;
         esac
     done
 }
@@ -90,56 +86,55 @@ lsshm_cli_server_menu() {
         else
             clear 2>/dev/null || true
             lsshm_header
-            printf 'Serveur SSH local\n\n'
+            lsshm_out 'Local SSH server'
+            printf '\n'
             lsshm_menu_try lsshm_server_status
-            cat <<EOF
-
- 1. Installer OpenSSH Server
- 2. Démarrer le service
- 3. Arrêter le service
- 4. Redémarrer le service
- 5. Recharger le service
- 6. Activer au démarrage
- 7. Désactiver au démarrage
- 8. Changer le port
- 9. Gérer l'accès root
-10. Authentification par mot de passe
-11. Authentification par clé
-12. Utilisateurs autorisés (AllowUsers)
-13. Groupes autorisés (AllowGroups)
-14. Tester la configuration (sshd -t)
-15. Afficher la configuration effective (sshd -T)
-16. Voir les journaux
-17. Retour
-EOF
-            choice="$(lsshm_prompt 'Choix' '17' || true)"
+            printf '\n'
+            printf ' 1. %s\n' "$(lsshm_t 'Install OpenSSH Server')"
+            printf ' 2. %s\n' "$(lsshm_t 'Start the service')"
+            printf ' 3. %s\n' "$(lsshm_t 'Stop the service')"
+            printf ' 4. %s\n' "$(lsshm_t 'Restart the service')"
+            printf ' 5. %s\n' "$(lsshm_t 'Reload the service')"
+            printf ' 6. %s\n' "$(lsshm_t 'Enable at boot')"
+            printf ' 7. %s\n' "$(lsshm_t 'Disable at boot')"
+            printf ' 8. %s\n' "$(lsshm_t 'Change the port')"
+            printf ' 9. %s\n' "$(lsshm_t 'Manage root access')"
+            printf '10. %s\n' "$(lsshm_t 'Password authentication')"
+            printf '11. %s\n' "$(lsshm_t 'Key authentication')"
+            printf '12. %s\n' "$(lsshm_t 'Allowed users (AllowUsers)')"
+            printf '13. %s\n' "$(lsshm_t 'Allowed groups (AllowGroups)')"
+            printf '14. %s\n' "$(lsshm_t 'Test the configuration (sshd -t)')"
+            printf '15. %s\n' "$(lsshm_t 'Show the effective configuration (sshd -T)')"
+            printf '16. %s\n' "$(lsshm_t 'View the logs')"
+            printf '17. %s\n' "$(lsshm_t 'Back')"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '17' || true)"
         fi
         case "$choice" in
-            1)  lsshm_ui_run "Installation OpenSSH Server" lsshm_server_install ;;
-            2)  lsshm_ui_run "Démarrage SSH" lsshm_server_start ;;
-            3)  lsshm_ui_run "Arrêt SSH" lsshm_server_stop ;;
-            4)  lsshm_ui_run "Redémarrage SSH" lsshm_server_restart ;;
-            5)  lsshm_ui_run "Rechargement SSH" lsshm_server_reload ;;
-            6)  lsshm_ui_run "Activation au démarrage" lsshm_server_enable ;;
-            7)  lsshm_ui_run "Désactivation au démarrage" lsshm_server_disable ;;
+            1)  lsshm_ui_run "$(lsshm_t 'OpenSSH Server installation')" lsshm_server_install ;;
+            2)  lsshm_ui_run "$(lsshm_t 'Starting SSH')" lsshm_server_start ;;
+            3)  lsshm_ui_run "$(lsshm_t 'Stopping SSH')" lsshm_server_stop ;;
+            4)  lsshm_ui_run "$(lsshm_t 'Restarting SSH')" lsshm_server_restart ;;
+            5)  lsshm_ui_run "$(lsshm_t 'Reloading SSH')" lsshm_server_reload ;;
+            6)  lsshm_ui_run "$(lsshm_t 'Enabling at boot')" lsshm_server_enable ;;
+            7)  lsshm_ui_run "$(lsshm_t 'Disabling at boot')" lsshm_server_disable ;;
             8)  lsshm_menu_action lsshm_set_port ;;
             9)  lsshm_menu_action lsshm_set_root_login ;;
             10) lsshm_menu_action lsshm_set_password_auth ;;
             11) lsshm_menu_action lsshm_set_pubkey_auth ;;
             12) lsshm_menu_action lsshm_set_allow_users ;;
             13) lsshm_menu_action lsshm_set_allow_groups ;;
-            14) lsshm_ui_run "Test sshd -t" lsshm_server_config_test ;;
+            14) lsshm_ui_run "$(lsshm_t 'sshd -t test')" lsshm_server_config_test ;;
             15)
                 if lsshm_uses_dialog_ui; then
-                    lsshm_menu_try lsshm_ui_show "Configuration effective" lsshm_server_config_show
+                    lsshm_menu_try lsshm_ui_show "$(lsshm_t 'Effective configuration')" lsshm_server_config_show
                 else
                     lsshm_server_config_show | ${PAGER:-less} 2>/dev/null || lsshm_menu_try lsshm_server_config_show
                     lsshm_pause
                 fi
                 ;;
-            16) lsshm_ui_run "Journaux SSH" lsshm_server_logs ;;
+            16) lsshm_ui_run "$(lsshm_t 'SSH logs')" lsshm_server_logs ;;
             17|q|Q) break ;;
-            *)  lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+            *)  lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done
 }
@@ -156,32 +151,31 @@ lsshm_cli_access_menu() {
         else
             clear 2>/dev/null || true
             lsshm_header
-            printf 'Accès à cette machine (clés autorisées pour se connecter ICI)\n'
-            printf 'Utilisateur ciblé : %s\n\n' "$user"
-            cat <<EOF
-1. Lister les utilisateurs
-2. Lister les clés autorisées
-3. Ajouter une clé (coller ou importer un .pub)
-4. Supprimer une clé
-5. Désactiver / réactiver une clé
-6. Réparer les permissions ~/.ssh
-7. Détecter les doublons
-8. Changer d'utilisateur ciblé
-9. Retour
-EOF
-            choice="$(lsshm_prompt 'Choix' '9' || true)"
+            lsshm_out 'Access to this machine (keys allowed to connect HERE)'
+            lsshm_out 'Target user: %s' "$user"
+            printf '\n'
+            printf '1. %s\n' "$(lsshm_t 'List users')"
+            printf '2. %s\n' "$(lsshm_t 'List authorized keys')"
+            printf '3. %s\n' "$(lsshm_t 'Add a key (paste or import a .pub)')"
+            printf '4. %s\n' "$(lsshm_t 'Remove a key')"
+            printf '5. %s\n' "$(lsshm_t 'Disable / re-enable a key')"
+            printf '6. %s\n' "$(lsshm_t 'Repair ~/.ssh permissions')"
+            printf '7. %s\n' "$(lsshm_t 'Detect duplicates')"
+            printf '8. %s\n' "$(lsshm_t 'Change target user')"
+            printf '9. %s\n' "$(lsshm_t 'Back')"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '9' || true)"
         fi
         case "$choice" in
-            1) lsshm_ui_run "Utilisateurs locaux" lsshm_users_print ;;
-            2) lsshm_ui_run "Clés autorisées" lsshm_access_list "$user" ;;
+            1) lsshm_ui_run "$(lsshm_t 'Local users')" lsshm_users_print ;;
+            2) lsshm_ui_run "$(lsshm_t 'Authorized keys')" lsshm_access_list "$user" ;;
             3) lsshm_menu_action lsshm_access_add "$user" ;;
             4) lsshm_menu_action lsshm_access_remove "$user" ;;
             5) lsshm_menu_action lsshm_access_disable "$user" ;;
-            6) lsshm_ui_run "Réparation permissions" lsshm_access_repair "$user" ;;
-            7) lsshm_ui_run "Doublons" lsshm_access_duplicates "$user" ;;
+            6) lsshm_ui_run "$(lsshm_t 'Permission repair')" lsshm_access_repair "$user" ;;
+            7) lsshm_ui_run "$(lsshm_t 'Duplicates')" lsshm_access_duplicates "$user" ;;
             8) lsshm_menu_action lsshm_pick_target_user "$user" ;;
             9|q|Q) break ;;
-            *) lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+            *) lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done
 }
@@ -197,28 +191,27 @@ lsshm_cli_keys_menu() {
         else
             clear 2>/dev/null || true
             lsshm_header
-            printf 'Clés SSH de %s (pour se connecter AILLEURS)\n' "$LSSHM_CALLING_USER"
-            printf 'Répertoire : %s\n\n' "$(lsshm_keys_dir)"
-            cat <<EOF
-1. Lister les paires de clés
-2. Générer une nouvelle clé (ED25519 par défaut)
-3. Inspecter une clé
-4. Afficher / exporter une clé publique
-5. Changer la phrase secrète
-6. Supprimer une paire de clés
-7. ssh-agent : lister
-8. ssh-agent : ajouter une clé
-9. ssh-agent : retirer une clé
-10. Changer d'utilisateur ciblé
-11. Retour
-EOF
-            choice="$(lsshm_prompt 'Choix' '11' || true)"
+            lsshm_out 'SSH keys of %s (to connect ELSEWHERE)' "$LSSHM_CALLING_USER"
+            lsshm_out 'Directory: %s' "$(lsshm_keys_dir)"
+            printf '\n'
+            printf '1. %s\n'  "$(lsshm_t 'List key pairs')"
+            printf '2. %s\n'  "$(lsshm_t 'Generate a new key (ED25519 by default)')"
+            printf '3. %s\n'  "$(lsshm_t 'Inspect a key')"
+            printf '4. %s\n'  "$(lsshm_t 'Show / export a public key')"
+            printf '5. %s\n'  "$(lsshm_t 'Change the passphrase')"
+            printf '6. %s\n'  "$(lsshm_t 'Delete a key pair')"
+            printf '7. %s\n'  "$(lsshm_t 'ssh-agent: list')"
+            printf '8. %s\n'  "$(lsshm_t 'ssh-agent: add a key')"
+            printf '9. %s\n'  "$(lsshm_t 'ssh-agent: remove a key')"
+            printf '10. %s\n' "$(lsshm_t 'Change target user')"
+            printf '11. %s\n' "$(lsshm_t 'Back')"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '11' || true)"
         fi
         case "$choice" in
-            1)  lsshm_ui_run "Paires de clés" lsshm_keys_list ;;
+            1)  lsshm_ui_run "$(lsshm_t 'Key pairs')" lsshm_keys_list ;;
             2)  lsshm_menu_action lsshm_keys_generate ;;
             3)  lsshm_menu_action lsshm_keys_inspect "" ;;
-            4)  lsshm_ui_run "Clé publique" lsshm_keys_export "" ;;
+            4)  lsshm_ui_run "$(lsshm_t 'Public key')" lsshm_keys_export "" ;;
             5)  lsshm_menu_action lsshm_keys_passphrase "" ;;
             6)  lsshm_menu_action lsshm_keys_delete "" ;;
             7)  lsshm_ui_run "ssh-agent" lsshm_agent_list ;;
@@ -226,7 +219,7 @@ EOF
             9)  lsshm_menu_action lsshm_agent_remove "" ;;
             10) lsshm_menu_action lsshm_pick_target_user "$LSSHM_CALLING_USER" ;;
             11|q|Q) break ;;
-            *)  lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+            *)  lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done
 }
@@ -242,38 +235,37 @@ lsshm_cli_hosts_menu() {
         else
             clear 2>/dev/null || true
             lsshm_header
-            printf 'Machines distantes (~/.ssh/config) - facultatif\n'
-            printf 'Utilisateur : %s\n\n' "$LSSHM_CALLING_USER"
-            cat <<EOF
- 1. Lister les machines
- 2. Ajouter une machine
- 3. Modifier une machine
- 4. Supprimer une machine
- 5. Tester une machine (résolution, port, auth)
- 6. Configuration effective (ssh -G)
- 7. Se connecter à une machine
- 8. Copier une clé (ssh-copy-id)
- 9. Retirer une clé distante
-10. known_hosts : lister
-11. known_hosts : supprimer une empreinte
-12. Retour
-EOF
-            choice="$(lsshm_prompt 'Choix' '12' || true)"
+            lsshm_out 'Remote hosts (~/.ssh/config) - optional'
+            lsshm_out 'User: %s' "$LSSHM_CALLING_USER"
+            printf '\n'
+            printf ' 1. %s\n' "$(lsshm_t 'List hosts')"
+            printf ' 2. %s\n' "$(lsshm_t 'Add a host')"
+            printf ' 3. %s\n' "$(lsshm_t 'Edit a host')"
+            printf ' 4. %s\n' "$(lsshm_t 'Delete a host')"
+            printf ' 5. %s\n' "$(lsshm_t 'Test a host (resolution, port, auth)')"
+            printf ' 6. %s\n' "$(lsshm_t 'Effective configuration (ssh -G)')"
+            printf ' 7. %s\n' "$(lsshm_t 'Connect to a host')"
+            printf ' 8. %s\n' "$(lsshm_t 'Copy a key (ssh-copy-id)')"
+            printf ' 9. %s\n' "$(lsshm_t 'Revoke a remote key')"
+            printf '10. %s\n' "$(lsshm_t 'known_hosts: list')"
+            printf '11. %s\n' "$(lsshm_t 'known_hosts: remove a fingerprint')"
+            printf '12. %s\n' "$(lsshm_t 'Back')"
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '12' || true)"
         fi
         case "$choice" in
-            1)  lsshm_ui_run "Machines distantes" lsshm_hosts_list ;;
+            1)  lsshm_ui_run "$(lsshm_t 'Remote hosts')" lsshm_hosts_list ;;
             2)  lsshm_menu_action lsshm_hosts_add ;;
             3)  lsshm_menu_action lsshm_hosts_edit "" ;;
             4)  lsshm_menu_action lsshm_hosts_delete "" ;;
-            5)  lsshm_ui_run "Test machine" lsshm_hosts_test "" ;;
-            6)  lsshm_ui_run "Configuration effective" lsshm_hosts_effective "" ;;
+            5)  lsshm_ui_run "$(lsshm_t 'Host test')" lsshm_hosts_test "" ;;
+            6)  lsshm_ui_run "$(lsshm_t 'Effective configuration')" lsshm_hosts_effective "" ;;
             7)  lsshm_menu_try lsshm_hosts_connect "" ;;
             8)  lsshm_menu_action lsshm_hosts_copy_key "" ;;
             9)  lsshm_menu_action lsshm_hosts_revoke_key "" ;;
             10) lsshm_ui_run "known_hosts" lsshm_known_hosts_list ;;
             11) lsshm_menu_action lsshm_known_hosts_remove "" ;;
             12|q|Q) break ;;
-            *)  lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+            *)  lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done
 }
@@ -290,31 +282,34 @@ lsshm_settings_menu() {
         else
             clear 2>/dev/null || true
             lsshm_header
-            printf 'Paramètres de LSSHM\n\n'
-            printf 'Utilisateur administré        : %s\n' "$LSSHM_CALLING_USER"
-            printf 'Vérification des mises à jour : %s\n' "$LSSHM_CFG_UPDATE_CHECK"
-            printf 'Canal de mise à jour          : %s\n' "$LSSHM_CFG_UPDATE_CHANNEL"
-            printf 'Fichier de configuration      : %s\n\n' "$LSSHM_CONFIG_FILE"
-            cat <<EOF
-1. Vérification : toujours
-2. Vérification : une fois par jour
-3. Vérification : jamais
-4. Vérifier les mises à jour maintenant
-5. Afficher le diagnostic (doctor)
-6. Changer d'utilisateur administré
-7. Retour
-EOF
-            choice="$(lsshm_prompt 'Choix' '7' || true)"
+            lsshm_out 'LSSHM settings'
+            printf '\n'
+            lsshm_out 'Managed user        : %s' "$LSSHM_CALLING_USER"
+            lsshm_out 'Update check        : %s' "$LSSHM_CFG_UPDATE_CHECK"
+            lsshm_out 'Update channel      : %s' "$LSSHM_CFG_UPDATE_CHANNEL"
+            lsshm_out 'Language            : %s' "$(lsshm_lang_native_name "$LSSHM_LANG")"
+            lsshm_out 'Configuration file  : %s' "$LSSHM_CONFIG_FILE"
+            printf '\n'
+            lsshm_out '1. Update check: always'
+            lsshm_out '2. Update check: once a day'
+            lsshm_out '3. Update check: never'
+            lsshm_out '4. Check for updates now'
+            lsshm_out '5. Show diagnostics (doctor)'
+            lsshm_out '6. Change the language'
+            lsshm_out '7. Change managed user'
+            lsshm_out '8. Back'
+            choice="$(lsshm_prompt "$(lsshm_t 'Choice')" '8' || true)"
         fi
         case "$choice" in
             1) lsshm_menu_try lsshm_config_set update_check always; lsshm_menu_try lsshm_config_load ;;
             2) lsshm_menu_try lsshm_config_set update_check daily; lsshm_menu_try lsshm_config_load ;;
             3) lsshm_menu_try lsshm_config_set update_check never; lsshm_menu_try lsshm_config_load ;;
             4) LSSHM_CFG_UPDATE_CHECK=always lsshm_menu_action lsshm_update_run ;;
-            5) lsshm_ui_run "Diagnostic LSSHM" lsshm_doctor ;;
-            6) lsshm_menu_action lsshm_pick_target_user "$LSSHM_CALLING_USER" ;;
-            7|q|Q) break ;;
-            *) lsshm_warn "Choix invalide."; lsshm_uses_dialog_ui || lsshm_pause ;;
+            5) lsshm_ui_run "$(lsshm_t 'LSSHM diagnostics')" lsshm_doctor ;;
+            6) lsshm_menu_action lsshm_i18n_choose; lsshm_menu_try lsshm_config_load ;;
+            7) lsshm_menu_action lsshm_pick_target_user "$LSSHM_CALLING_USER" ;;
+            8|q|Q) break ;;
+            *) lsshm_warn 'Invalid choice.'; lsshm_uses_dialog_ui || lsshm_pause ;;
         esac
     done
 }

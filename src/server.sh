@@ -28,33 +28,33 @@ lsshm_server_action() {
         sysv)
             case "$action" in
                 enable|disable)
-                    lsshm_warn "Activation/désactivation automatique non gérée pour SysV ici."
+                    lsshm_warn 'Automatic enable/disable is not handled for SysV here.'
                     return 1 ;;
                 *) lsshm_run_privileged service "$LSSHM_SSH_SERVICE" "$action" ;;
             esac
             ;;
         *)
-            lsshm_error "Gestionnaire de service inconnu : impossible d'exécuter '$action'."
+            lsshm_error "Unknown service manager: cannot run '%s'." "$action"
             return 1
             ;;
     esac
 }
 
-lsshm_server_start()   { lsshm_server_action start   && lsshm_ok "Service SSH démarré."; }
-lsshm_server_stop()    { lsshm_server_action stop    && lsshm_ok "Service SSH arrêté."; }
-lsshm_server_restart() { lsshm_server_action restart && lsshm_ok "Service SSH redémarré."; }
-lsshm_server_enable()  { lsshm_server_action enable  && lsshm_ok "Démarrage automatique activé."; }
-lsshm_server_disable() { lsshm_server_action disable && lsshm_ok "Démarrage automatique désactivé."; }
+lsshm_server_start()   { lsshm_server_action start   && lsshm_ok 'SSH service started.'; }
+lsshm_server_stop()    { lsshm_server_action stop    && lsshm_ok 'SSH service stopped.'; }
+lsshm_server_restart() { lsshm_server_action restart && lsshm_ok 'SSH service restarted.'; }
+lsshm_server_enable()  { lsshm_server_action enable  && lsshm_ok 'Automatic startup enabled.'; }
+lsshm_server_disable() { lsshm_server_action disable && lsshm_ok 'Automatic startup disabled.'; }
 
 # Reload preferred over restart; validate config first.
 lsshm_server_reload() {
     if ! lsshm_server_config_test; then
-        lsshm_error "Configuration invalide : rechargement annulé."
+        lsshm_error 'Invalid configuration: reload cancelled.'
         return 1
     fi
     if lsshm_server_action reload; then
         lsshm_server_config_invalidate_cache
-        lsshm_ok "Service SSH rechargé."
+        lsshm_ok 'SSH service reloaded.'
     else
         return 1
     fi
@@ -94,35 +94,33 @@ lsshm_server_port_listening() {
 
 lsshm_server_status() {
     if ! lsshm_server_is_installed; then
-        lsshm_warn "OpenSSH Server n'est pas installé (binaire sshd introuvable)."
+        lsshm_warn 'OpenSSH Server is not installed (sshd binary not found).'
         return 0
     fi
     local active enabled port rootlogin passauth pubkey
-    if lsshm_server_is_active; then active="actif"; else active="inactif"; fi
-    if lsshm_server_is_enabled; then enabled="oui"; else enabled="non"; fi
+    if lsshm_server_is_active; then active="$(lsshm_t active)"; else active="$(lsshm_t inactive)"; fi
+    if lsshm_server_is_enabled; then enabled="$(lsshm_t yes)"; else enabled="$(lsshm_t no)"; fi
     port="$(lsshm_server_config_effective_value port)"; port="${port:-22}"
     rootlogin="$(lsshm_server_config_effective_value permitrootlogin)"
     passauth="$(lsshm_server_config_effective_value passwordauthentication)"
     pubkey="$(lsshm_server_config_effective_value pubkeyauthentication)"
 
-    cat <<EOF
-État du serveur SSH : $active
-Démarrage auto      : $enabled
-Port                : $port
-Accès root          : $(lsshm_rootlogin_label "$rootlogin")
-Auth. mot de passe  : $(lsshm_yesno_label "$passauth")
-Auth. par clé       : $(lsshm_yesno_label "$pubkey")
-EOF
+    lsshm_out 'SSH server status : %s' "$active"
+    lsshm_out 'Auto-start        : %s' "$enabled"
+    lsshm_out 'Port              : %s' "$port"
+    lsshm_out 'Root access       : %s' "$(lsshm_rootlogin_label "$rootlogin")"
+    lsshm_out 'Password auth.    : %s' "$(lsshm_yesno_label "$passauth")"
+    lsshm_out 'Key auth.         : %s' "$(lsshm_yesno_label "$pubkey")"
 }
 
 # --- installation ------------------------------------------------------------
 
 lsshm_server_install() {
     if lsshm_server_is_installed; then
-        lsshm_ok "OpenSSH Server est déjà installé : $LSSHM_SSHD_BIN"
+        lsshm_ok 'OpenSSH Server is already installed: %s' "$LSSHM_SSHD_BIN"
         return 0
     fi
-    lsshm_info "Installation d'OpenSSH Server..."
+    lsshm_info 'Installing OpenSSH Server...'
     lsshm_require_root
     case "$LSSHM_PKG_MGR" in
         apt)
@@ -139,17 +137,17 @@ lsshm_server_install() {
         zypper)
             lsshm_run_privileged zypper install -y openssh ;;
         *)
-            lsshm_error "Gestionnaire de paquets non pris en charge : $LSSHM_PKG_MGR"
+            lsshm_error 'Unsupported package manager: %s' "$LSSHM_PKG_MGR"
             return 1 ;;
     esac
     # Refresh detection.
     LSSHM_SSHD_BIN="$(lsshm_detect_sshd_bin)"
     if lsshm_server_is_installed; then
-        lsshm_ok "OpenSSH Server installé."
+        lsshm_ok 'OpenSSH Server installed.'
         lsshm_server_action enable || true
         lsshm_server_action start  || true
     else
-        lsshm_error "L'installation semble avoir échoué."
+        lsshm_error 'The installation appears to have failed.'
         return 1
     fi
 }
@@ -163,7 +161,7 @@ lsshm_server_logs() {
     elif [ -f /var/log/secure ]; then
         lsshm_run_privileged tail -n "$lines" /var/log/secure
     else
-        lsshm_warn "Aucune source de journaux SSH détectée."
+        lsshm_warn 'No SSH log source detected.'
         return 1
     fi
 }
