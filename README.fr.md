@@ -38,16 +38,22 @@ LSSHM gère quatre domaines distincts, visibles dans tous les menus :
 
 ### Linux
 
-Installe LSSHM dans `~/.local`, crée la commande `lsshm`, et ajoute automatiquement `~/.local/bin` au PATH (`~/.profile`, et la session courante) :
+Installe LSSHM dans `~/.local`, crée la commande `lsshm`, et configure automatiquement `~/.local/bin` dans le PATH (`~/.profile`, et `~/.bashrc` s’il existe) :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- install
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- install
 ```
 
 Puis lancez :
 
 ```bash
 lsshm
+```
+
+Si `lsshm` est introuvable dans le terminal **actuel** (par exemple après `curl | bash`, qui ne peut pas modifier le shell parent), ouvrez un nouveau terminal, ou une fois :
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 > Pas de `sudo` pour l'installation. Les privilèges root ne sont demandés que pour gérer le serveur SSH ou les fichiers système.
@@ -57,7 +63,7 @@ lsshm
 Téléchargez et lancez l'interface CLI PowerShell (mêmes menus et concepts que sous Linux) :
 
 ```powershell
-irm https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
+irm https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.ps1 -OutFile $env:TEMP\lsshm.ps1
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lsshm.ps1
 ```
 
@@ -74,14 +80,12 @@ La gestion du serveur OpenSSH nécessite PowerShell **en administrateur**. Les c
 Pour **essayer** LSSHM ou lancer **une commande ponctuelle**, sans rien installer :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash              # menu
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- status   # état
-curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/preview/lsshm.sh | bash -s -- ui       # interface dialog
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash              # menu
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- status   # état
+curl -fsSL https://raw.githubusercontent.com/sannier3/lsshm/main/lsshm.sh | bash -s -- ui       # interface dialog
 ```
 
 C'est le **même fichier** qu'à l'installation ; le script est juste exécuté directement (retéléchargé à chaque `curl`).
-
-> Cette documentation cible la branche **preview**.
 
 ## Utilisation
 
@@ -172,13 +176,16 @@ Vous pouvez aussi changer d’utilisateur dans **Accès**, **Clés** ou **Param�
 
 - Interface multilingue (anglais, français, espagnol) avec pré-sélection selon la locale
 - Détection Debian / dérivés, systemd, LXC
-- Installation et gestion du service OpenSSH Server
-- Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf`
+- Installation et gestion du service OpenSSH Server (Linux et Windows)
+- Paramètres d’écoute : `Port`, `AddressFamily`, `ListenAddress`
+- Pare-feu Windows : autoriser / désactiver OpenSSH (Server et Client)
+- Configuration via `/etc/ssh/sshd_config.d/00-lsshm.conf` (Linux) ou `%ProgramData%\ssh\sshd_config` (Windows)
 - Lecture effective (`sshd -T`) et validation (`sshd -t`)
 - Gestion lisible de `PermitRootLogin`, mots de passe, clés publiques, `AllowUsers` / `AllowGroups`
-- Restauration automatique pour changements dangereux (port, root, mots de passe…)
+- Restauration automatique pour changements dangereux (port, adresses d’écoute, root, mots de passe…)
 - Gestion des `authorized_keys` (liste, ajout, suppression, désactivation, réparation, doublons)
 - Génération ED25519/RSA, `ssh-agent`, `~/.ssh/config`, `ssh-copy-id`
+- Gestion de `known_hosts`, y compris réparation quand la clé d’un hôte distant a changé
 - Audit de sécurité, journaux, sauvegarde/restauration
 - Mise à jour sécurisée (`bash -n`, SHA-256, remplacement atomique, rollback)
 
