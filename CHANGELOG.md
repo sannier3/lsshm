@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows menu no longer exits immediately in remote OpenSSH / PowerShell
+  sessions: interactive detection now uses console stdin/stdout attachment
+  instead of `[Environment]::UserInteractive` alone (often false over SSH).
+
 ## [0.4.0] - 2026-07-28
 
 ### Added
