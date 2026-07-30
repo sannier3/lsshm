@@ -7,7 +7,7 @@ LSSHM est un outil de gestion OpenSSH **local** : serveur SSH, accès entrants, 
 Interface CLI par défaut (sans dépendance) et interface `dialog` facultative.
 
 > [!WARNING]
-> LSSHM est en développement actif (v0.4.0). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
+> LSSHM est en développement actif (v0.4.1). Une mauvaise configuration SSH peut vous verrouiller hors de la machine. LSSHM vise à limiter ce risque via validation, sauvegardes, confirmations et restauration automatique.
 
 ## Langues
 
@@ -172,7 +172,7 @@ lsshm --user jb key generate
 
 Vous pouvez aussi changer d’utilisateur dans **Accès**, **Clés** ou **Paramètres**.
 
-## Fonctionnalités v0.4.0
+## Fonctionnalités v0.4.1
 
 - Interface multilingue (anglais, français, espagnol) avec pré-sélection selon la locale
 - Détection Debian / dérivés, systemd, LXC

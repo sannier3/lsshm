@@ -27,7 +27,7 @@ $ErrorActionPreference = 'Stop'
 # Constants and state
 # =============================================================================
 
-$script:LSSHM_VERSION = '0.4.0'
+$script:LSSHM_VERSION = '0.4.1'
 $script:LSSHM_NAME = 'LSSHM'
 $script:LSSHM_LONG_NAME = 'LSSHM - Local SSH Manager'
 $script:LSSHM_REPO_RAW = if ($env:LSSHM_REPO_RAW) { $env:LSSHM_REPO_RAW } else { 'https://raw.githubusercontent.com/sannier3/lsshm/preview' }
@@ -840,7 +840,27 @@ function Write-LsshmHeader {
 
 function Test-LsshmInteractive {
     if ($script:LSSHM_ASSUME_YES) { return $false }
-    try { return [Environment]::UserInteractive } catch { return $true }
+
+    # Prefer console attachment checks. [Environment]::UserInteractive is often
+    # false under OpenSSH Server (remote PowerShell) even when a PTY is
+    # allocated and Read-Host works — that used to make the menu auto-quit
+    # with the default "9" choice.
+    try {
+        if (-not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected) {
+            return $true
+        }
+        if ([Console]::IsInputRedirected) {
+            return $false
+        }
+    } catch {
+        # Console API unavailable — fall through.
+    }
+
+    try {
+        return [Environment]::UserInteractive
+    } catch {
+        return $true
+    }
 }
 
 function Read-LsshmPrompt {
